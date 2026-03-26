@@ -1,0 +1,333 @@
+﻿using System;
+using System.Buffers.Text;
+using System.Collections.Generic;
+using System.ComponentModel;
+using System.Configuration;
+using System.Diagnostics;
+using System.IO;
+using System.Linq;
+using System.Net;
+using System.Net.Cache;
+using System.Net.Http;
+using System.Net.Http.Headers;
+using System.Reflection.PortableExecutable;
+using System.Runtime.Intrinsics.Arm;
+using System.Security.Policy;
+using System.Text.Json;
+using System.Threading;
+using System.Threading.Tasks;
+using System.Windows;
+using System.Windows.Input;
+using XtreamIPTV.Models;
+using XtreamIPTV.Services;
+using XtreamIPTV.Views;
+using static System.Net.WebRequestMethods;
+
+namespace XtreamIPTV.ViewModels
+{
+    public class MainViewModel : INotifyPropertyChanged
+    {
+        public event PropertyChangedEventHandler? PropertyChanged;
+
+        private string _title = "XtreamIPTV";
+        public string Title
+        {
+            get
+            {
+                return _title;
+            }
+            set
+            {
+                _title = value;
+                PropertyChanged?.Invoke(this, new(nameof(Title)));
+            }
+        }
+        public object? CurrentView
+        {
+            get => _currentView;
+            set
+            {
+                _currentView = value;
+                PropertyChanged?.Invoke(this, new(nameof(CurrentView)));
+            }
+        }
+        private object? _currentView;
+
+        public MoviesViewModel MoviesVM { get; }
+        public SeriesViewModel SeriesVM { get; }
+        public PlayerViewModel PlayerVM { get; }
+        public SearchViewModel SearchVM { get; }
+
+        public SearchView SearchView { get; }
+        public MoviesView MoviesView { get; }
+        public SeriesView SeriesView { get; }
+
+        public FavoritesService Favorites { get; }
+        public ContinueWatchingService Continue { get; }
+        public SeriesEpisodeService SeriesProgress { get; }
+        public IIPTVService Xtream { get; }
+
+        public ICommand ShowSearchCommand { get; }
+        public ICommand ShowSeriesCommand { get; }
+        public ICommand ShowMoviesCommand { get; }
+
+        public MainViewModel()
+        {
+            //NCW
+            //Xtream = new XtreamCodesService();
+            Xtream = new DatabaseService();
+            Favorites = new FavoritesService();
+            Continue = new ContinueWatchingService();
+            SeriesProgress = new SeriesEpisodeService();
+
+            MoviesVM = new MoviesViewModel(Xtream, Favorites, Continue);
+            SeriesVM = new SeriesViewModel(Xtream, Favorites, SeriesProgress);
+            SearchVM = new SearchViewModel(MoviesVM, SeriesVM);
+            PlayerVM = new PlayerViewModel(Continue);
+
+            SearchView = new SearchView { DataContext = SearchVM };
+            MoviesView = new MoviesView { DataContext = MoviesVM };
+            SeriesView = new SeriesView { DataContext = SeriesVM };
+
+            ShowSearchCommand = new RelayCommand(_ => CurrentView = SearchView);
+            ShowMoviesCommand = new RelayCommand(_ => CurrentView = MoviesView);
+            ShowSeriesCommand = new RelayCommand(_ => CurrentView = SeriesView);
+
+            CurrentView = SearchView;
+        }
+
+        public async Task<bool> PlayEpisode(Episode ep, bool external = false)
+        {
+            HttpClient client = new();
+            List<string> urls = [
+                $"https://vidfast.pro/tv/{ep.SeriesId}/{ep.SeasonId}/{ep.EpisodeNumber}?autoPlay=true&server=Alpha",
+            ];
+            string url = string.Empty;
+            if (string.IsNullOrEmpty(ep.StreamUrl))
+            {
+                HttpClient tmdbclient = new HttpClient();
+                tmdbclient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", ConfigurationManager.AppSettings["Bearer"]);
+                tmdbclient.DefaultRequestHeaders.Add("accept", "application/json");
+
+                url = $"https://api.themoviedb.org/3/tv/225171/external_ids?series_id={ep.SeriesId}&language=en-US";
+                var json = await tmdbclient.GetStringAsync(url);
+                var data = JsonSerializer.Deserialize<JsonElement>(json);
+                var imdb_id = data.GetProperty("imdb_id").ToString();
+
+                var plainTextBytes = System.Text.Encoding.UTF8.GetBytes($"{imdb_id}:{ep.SeriesId}/season/{ep.SeasonId}/episode/{ep.EpisodeNumber}");
+                url = $"http://159.203.85.251/play.php?type=series&movieId={ep.EpisodeId}&data={Convert.ToBase64String(plainTextBytes)}";
+                var response = await client.SendAsync(new HttpRequestMessage(HttpMethod.Head, url));
+                if (response == null)
+                    return false;
+                if (response.IsSuccessStatusCode)
+                {
+                    url = response.RequestMessage?.RequestUri?.AbsoluteUri ?? url;
+                    ep.StreamUrl = url;
+                }
+                else
+                {
+                    foreach (string checkpath in urls)
+                    {
+                        url = $"http://localhost:3202/get-video?url={WebUtility.UrlEncode(checkpath).Replace("/", "%2F").Replace(":", "%3A")}";
+                        var json2 = await client.GetStringAsync(url);
+                        var data2 = JsonSerializer.Deserialize<JsonElement>(json2);
+                        if (data2.GetProperty("status").ToString() == "ok")
+                        {
+                            ep.StreamUrl = checkpath;
+                            break;
+                        }
+                    }
+                }
+            }
+
+            var title = $"{SeriesVM.GetSeriesTitle(ep.SeriesId)} {ep.Title}";
+            if (urls.Contains(ep.StreamUrl))
+            {
+                if (external)
+                {
+                    Process.Start(new ProcessStartInfo(ep.StreamUrl) { UseShellExecute = true });
+                }
+                else
+                {
+                    PlayerVM.Play($"series-{ep.EpisodeId}", ep.StreamUrl);
+                    CurrentView = new HTMLPlayerView { DataContext = PlayerVM };
+                    SeriesProgress.SetLastWatched(ep);
+                    Title = $"XtreamIPTV Playing {title}";
+                }
+            }
+            else if (!string.IsNullOrEmpty(ep.StreamUrl))
+            {
+                var response2 = await client.SendAsync(new HttpRequestMessage(HttpMethod.Head, ep.StreamUrl));
+
+                ep.StreamUrl = response2?.RequestMessage?.RequestUri?.AbsoluteUri ?? ep.StreamUrl;
+                if (external)
+                {
+                    string exe = "C:\\Program Files\\MPC-HC\\mpc-hc64.exe";
+                    string arguments = $"\"{ep.StreamUrl}\"";
+                    Process.Start(exe, arguments);
+                }
+                else
+                {
+                    PlayerVM.ErrorMessage = string.Empty;
+                    PlayerVM.Play($"series-{ep.EpisodeId}", ep.StreamUrl);
+                    CurrentView = new PlayerView { DataContext = PlayerVM };
+                    Title = $"XtreamIPTV Playing {title}";
+                }
+                SeriesProgress.SetLastWatched(ep);
+            }
+            else
+            {
+                MessageBox.Show($"Cannot locate {title}");
+                return false;
+            }
+            return true;
+        }
+
+        public async Task PlayMovie(Movie movie, bool external = false)
+        {
+            HttpClient client = new();
+            Directory.GetFiles("E:\\Movies",$"{movie.Id}*.*").ToList().ForEach(f =>
+            {
+                movie.StreamUrl = f;
+            });
+            List<string> urls = [
+                $"https://vidfast.pro/movie/{movie.Id}?autoPlay=true&server=vFast",
+                        //$"https://vidsrc.xyz/embed/movie/{movie.Id}?autoplay=1",
+                        //$"https://111movies.com/movie/{movie.Id}",
+                        //$"https://vidsrc.cc/v3/embed/movie/{movie.Id}",
+                    ];
+            string url = string.Empty;
+            //url = await GetPrimewireURL(movie, client);
+            if (string.IsNullOrEmpty(movie.StreamUrl))
+            {
+                url = $"http://159.203.85.251/play.php?movieId={movie.Id}";
+                var response = await client.SendAsync(new HttpRequestMessage(HttpMethod.Head, url));
+                if (response == null)
+                    return;
+                if (response.IsSuccessStatusCode)
+                {
+                    url = response.RequestMessage?.RequestUri?.AbsoluteUri ?? url;
+                    movie.StreamUrl = url;
+                }
+                else
+                {
+                    foreach (string checkpath in urls)
+                    {
+                        url = $"http://localhost:3202/get-video?url={WebUtility.UrlEncode(checkpath).Replace("/", "%2F").Replace(":", "%3A")}";
+                        var json = await client.GetStringAsync(url);
+                        var data = JsonSerializer.Deserialize<JsonElement>(json);
+                        if (data.GetProperty("status").ToString() == "ok")
+                        {
+                            movie.StreamUrl = checkpath;
+                            break;
+                        }
+                    }
+                }
+            }
+            if (urls.Contains(movie.StreamUrl))
+            {
+                if (external)
+                {
+                    Process.Start(new ProcessStartInfo(movie.StreamUrl) { UseShellExecute = true });
+                }
+                else
+                {
+                    PlayerVM.Play($"movie-{movie.Id}", movie.StreamUrl);
+                    CurrentView = new HTMLPlayerView { DataContext = PlayerVM };
+                    Title = $"XtreamIPTV Playing {movie.Title}";
+                }
+            }
+            else if (!string.IsNullOrEmpty(movie.StreamUrl))
+            {
+                if (movie.StreamUrl.StartsWith("http"))
+                {
+                    var response2 = await client.SendAsync(new HttpRequestMessage(HttpMethod.Head, movie.StreamUrl));
+
+                    movie.StreamUrl = response2?.RequestMessage?.RequestUri?.AbsoluteUri ?? movie.StreamUrl;
+                }
+                if (external)
+                {
+                    string exe = "C:\\Program Files\\MPC-HC\\mpc-hc64.exe";
+                    string arguments = $"\"{movie.StreamUrl}\"";
+                    Process.Start(exe, arguments);
+                }
+                else
+                {
+                    PlayerVM.ErrorMessage = string.Empty;
+                    PlayerVM.Play($"movie-{movie.Id}", movie.StreamUrl);
+                    CurrentView = new PlayerView { DataContext = PlayerVM };
+                    Title = $"XtreamIPTV Playing {movie.Title}";
+                }
+            }
+            else
+            {
+                //url = await GetPrimewireURL(movie, client);
+                Process.Start(new ProcessStartInfo($"https://www.primewire.mov/api/v1/s?tmdb={movie.Id}&type=movie") { UseShellExecute = true });
+                //MessageBox.Show($"Cannot locate {movie.Title}");
+                return;
+            }
+            Title = $"XtreamIPTV Playing {movie.Title}";
+        }
+
+        private static async Task<string> GetPrimewireURL(Movie movie, HttpClient client)
+        {
+            string url = $"https://www.primewire.mov/api/v1/s?tmdb={movie.Id}&type=movie";
+            var json = await client.GetStringAsync(url);
+            PrimewireRoot primewireData = JsonSerializer.Deserialize<PrimewireRoot>(json);
+
+            if (primewireData == null) return string.Empty;
+
+            var servers = primewireData.servers.OrderBy(s => s.file_size);
+
+            client.DefaultRequestHeaders.Add("User-Agent", "Mozilla/5.0");
+            foreach (var server in servers)
+            {
+                try
+                {
+                    url = $"https://www.primewire.mov/api/v1/l?key={server.key}";
+
+                    using var msg = new HttpRequestMessage(HttpMethod.Get, new Uri(url));
+
+                    using var req = await client.SendAsync(msg);
+
+                    var str1 = await req.Content.ReadAsStringAsync();
+
+                    KeyData keyData = JsonSerializer.Deserialize<KeyData>(str1);
+
+                    if (keyData == null) continue;
+
+                    return keyData.link;
+                }
+                catch (Exception ex)
+                {
+                    Debug.WriteLine(ex);
+                }
+            }
+            MessageBox.Show($"Cannot locate {movie.Title}");
+
+            return string.Empty;
+        }
+
+        public async Task Search()
+        {
+            var task1 = MoviesVM.Search(SearchVM.SearchText);
+            var task2 = SeriesVM.Search(SearchVM.SearchText);
+
+            var tasks = new List<Task> { task1, task2 };
+            // 3. Await Task.WhenAll to wait for all of them to finish
+            await Task.WhenAll(tasks);
+        }
+
+        internal void RemoveLastWatched(Series series)
+        {
+            SeriesProgress.RemoveLastWatched(series.Id);
+            foreach (var episode in series.Seasons.SelectMany(s => s.Episodes).ToList())
+                Continue.RemoveProgress($"series-{episode.EpisodeId}");
+        }
+
+        internal void RemoveLastWatched(Movie movie)
+        {
+            Continue.RemoveProgress($"movie-{movie.Id}");
+        }
+    }
+}
