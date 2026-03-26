@@ -1,0 +1,24 @@
+﻿<UserControl x:Class="XtreamIPTV.Controls.SideNav"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+    <StackPanel Background="#222" Orientation="Horizontal">
+        <Button Content="Movies" Width="50"
+                Margin="0,0,10,0"
+                Command="{Binding DataContext.ShowMoviesCommand,
+                                  RelativeSource={RelativeSource AncestorType=Window}}"/>
+
+        <Button Content="Series" Width="50"
+                Margin="0,0,10,0"                
+                Command="{Binding DataContext.ShowSeriesCommand,
+                                  RelativeSource={RelativeSource AncestorType=Window}}"/>
+
+        <Button Content="Player" Width="50"
+                Margin="0,0,10,0"                
+                Command="{Binding DataContext.ShowPlayerCommand,
+                                  RelativeSource={RelativeSource AncestorType=Window}}"/>
+
+        <StackPanel.LayoutTransform>
+            <RotateTransform Angle="90" />
+        </StackPanel.LayoutTransform>
+    </StackPanel>
+</UserControl>
