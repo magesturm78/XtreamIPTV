@@ -202,9 +202,16 @@ namespace XtreamIPTV.Services
                         if (string.IsNullOrEmpty(cover_big))
                             cover_big = null;
 
+                        var sinfo = $"S{seasonNumber:00}E{epNum:00}";
+
+                        if (!title.StartsWith(sinfo))
+                            title = $"{sinfo} - {title}";
+
                         season.Episodes.Add(new Episode
                         {
-                            Title = $"S{seasonNumber:00}E{epNum:00} - {title}",
+                            SeriesId = series.Id,
+                            SeasonId = seasonNumber,
+                            Title = title,
                             EpisodeNumber = epNum,
                             DirectSource = url,
                             Poster = cover_big,

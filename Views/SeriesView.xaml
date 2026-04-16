@@ -27,7 +27,7 @@
                  ItemsSource="{Binding Categories}" 
                  SelectedItem="{Binding SelectedCategory}"
                  SelectionChanged="ListBox_SelectionChanged"
-                 DisplayMemberPath="Name" 
+                 DisplayMemberPath="Name" ScrollViewer.HorizontalScrollBarVisibility="Hidden"
                  Height="{Binding ElementName=LayoutRoot, Path=ActualHeight}"/>
 
         <!-- SERIES DETAILS -->
