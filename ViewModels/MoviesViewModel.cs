@@ -217,7 +217,7 @@ namespace XtreamIPTV.ViewModels
         {
             if (_selectedMovie == null) return;
             //if (!string.IsNullOrEmpty(_selectedMovie.Backdrop)) return;
-            if (!_selectedMovie.ReleaseInfo.EndsWith(" * ")) return;
+            if (!string.IsNullOrEmpty(_selectedMovie.ReleaseInfo) && !_selectedMovie.ReleaseInfo.EndsWith(" * ")) return;
 
 
             SelectedMovie = await _xtream.GetMovieDetailAsync(_selectedMovie);

@@ -3,21 +3,21 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:vm="clr-namespace:XtreamIPTV.ViewModels"
         xmlns:controls="clr-namespace:XtreamIPTV.Controls"
-        Title="{Binding Title}" Height="720" Width="1280">
+        Title="{Binding Title}" Height="720" Width="1280"
+        MouseMove="Window_MouseMove" KeyDown="Window_KeyDown">
     <Window.DataContext>
         <vm:MainViewModel/>
     </Window.DataContext>
-
     <Grid>
         <Grid.RowDefinitions>
             <RowDefinition Height="*"/>
         </Grid.RowDefinitions>
         <Grid.ColumnDefinitions>
-            <ColumnDefinition Width="20"/>
+            <ColumnDefinition Width="Auto"/>
             <ColumnDefinition Width="*"/>
         </Grid.ColumnDefinitions>
 
-        <controls:SideNav Grid.Column="0" Grid.RowSpan="2"/>
+        <controls:SideNav x:Name="sideNav" Grid.Column="0" Width="20" Visibility="{Binding MenuVisibility}"/>
 
         <ContentControl Grid.Column="1"
                         Content="{Binding CurrentView}" Grid.RowSpan="2"/>

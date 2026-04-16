@@ -9,7 +9,7 @@
              d:DesignHeight="450" d:DesignWidth="800">
     <Grid>
         <Grid>
-            <wv2:WebView2 Name="webView" Source="{Binding CurrentStreamUrl}"/>
+            <wv2:WebView2 Name="webView"/>
         </Grid>
     </Grid>
 </UserControl>

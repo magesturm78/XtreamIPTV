@@ -160,7 +160,8 @@ namespace XtreamIPTV.Views
                 {
                     if (vm.MovePlayTime > 0)
                     {
-                        PlayButton.Content = $"Resume {vm.MovePlayTime/3600:0}:{(vm.MovePlayTime%3600)/60:00}";
+                        var ts = TimeSpan.FromSeconds(vm.MovePlayTime);
+                        PlayButton.Content = $"Resume {ts.Hours:0}:{ts.Minutes:00}";
                         PlayButton.FontSize = 20;
                     }
                     else

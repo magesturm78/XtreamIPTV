@@ -549,7 +549,9 @@ namespace XtreamIPTV.Services
                                     {
                                         try
                                         {
-                                            _ = await _http.GetStringAsync(BuildUrl("get_vod_info", $"vod_id={mid}"));
+                                            //Add movie if not found in database to avoid multiple calls to tmdb for the same movie
+                                            if (!allMovies.Any(m => m.Id == mid.GetInt32()))
+                                                _ = await _http.GetStringAsync(BuildUrl("get_vod_info", $"vod_id={mid}"));
                                             if (!movie.Similiar.Contains(mid.GetInt32()))
                                                 movie.Similiar.Add(mid.GetInt32());
                                         }
@@ -565,8 +567,8 @@ namespace XtreamIPTV.Services
                             Debug.Print($"Error fetching similar movies for ID {movie.Id}: {ex.Message}");
                         }
                     }
-                    query1 = $"INSERT or REPLACE into similiar_movies (tmdb_id, similiar) " +
-                    $"VALUES ({movie.Id}, '{string.Join(",", movie.Similiar)}')";
+                    query1 = $"INSERT or REPLACE into similiar_movies (tmdb_id, similiar, updated) " +
+                    $"VALUES ({movie.Id}, '{string.Join(",", movie.Similiar)}', datetime(\"now\", \"localtime\"))";
                     using var command2 = new SqliteCommand(query1, connection);
                     command2.ExecuteNonQuery();
                 }
@@ -654,7 +656,8 @@ namespace XtreamIPTV.Services
                                     {
                                         try
                                         {
-                                            _ = await _http.GetStringAsync(BuildUrl("get_series_info", $"series_id={mid}"));
+                                            if (!allSeries.Any(s => s.Id == mid.GetInt32()))
+                                                _ = await _http.GetStringAsync(BuildUrl("get_series_info", $"series_id={mid}"));
                                             if (!series.Similiar.Contains(mid.GetInt32()))
                                                 series.Similiar.Add(mid.GetInt32());
                                         }
@@ -670,8 +673,8 @@ namespace XtreamIPTV.Services
                             Debug.Print($"Error fetching similar series for ID {series.Id}: {ex.Message}");
                         }
                     }
-                    query1 = $"INSERT or REPLACE into similiar_series (tmdb_id, similiar) " +
-                            $"VALUES ({series.Id}, '{string.Join(",", series.Similiar)}')";
+                    query1 = $"INSERT or REPLACE into similiar_series (tmdb_id, similiar, updated) " +
+                            $"VALUES ({series.Id}, '{string.Join(",", series.Similiar)}', datetime(\"now\", \"localtime\"))";
                         using var command2 = new SqliteCommand(query1, connection);
                         command2.ExecuteNonQuery();
                 }
@@ -705,7 +708,7 @@ namespace XtreamIPTV.Services
             }
 
             //return list.OrderBy(x => series.Similiar.IndexOf(x.Id));
-            return list.OrderByDescending(x => x.ReleaseDate);
+            return list.OrderByDescending(x => x.Id == series.Id).ThenByDescending(x => x.ReleaseDate);
         }
 
         private Series? CreateSeriesFromJSON(int id, string data, string credits)

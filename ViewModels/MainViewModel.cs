@@ -11,6 +11,7 @@ using System.Net.Cache;
 using System.Net.Http;
 using System.Net.Http.Headers;
 using System.Reflection.PortableExecutable;
+using System.Runtime.CompilerServices;
 using System.Runtime.Intrinsics.Arm;
 using System.Security.Policy;
 using System.Text.Json;
@@ -18,6 +19,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Input;
+using System.Windows.Threading;
 using XtreamIPTV.Models;
 using XtreamIPTV.Services;
 using XtreamIPTV.Views;
@@ -28,7 +30,9 @@ namespace XtreamIPTV.ViewModels
     public class MainViewModel : INotifyPropertyChanged
     {
         public event PropertyChangedEventHandler? PropertyChanged;
+        private readonly DispatcherTimer _hideTimer = new();
 
+        public static MainViewModel Instance { get; private set; }
         private string _title = "XtreamIPTV";
         public string Title
         {
@@ -53,6 +57,17 @@ namespace XtreamIPTV.ViewModels
         }
         private object? _currentView;
 
+        private Visibility _menuVisibility = Visibility.Hidden;
+        public Visibility MenuVisibility
+        {
+            get => _menuVisibility;
+            set
+            {
+                _menuVisibility = value;
+                PropertyChanged?.Invoke(this, new(nameof(MenuVisibility)));
+            }
+        }
+
         public MoviesViewModel MoviesVM { get; }
         public SeriesViewModel SeriesVM { get; }
         public PlayerViewModel PlayerVM { get; }
@@ -73,9 +88,10 @@ namespace XtreamIPTV.ViewModels
 
         public MainViewModel()
         {
+            Instance = this;
             //NCW
-            //Xtream = new XtreamCodesService();
-            Xtream = new DatabaseService();
+            Xtream = new XtreamCodesService();
+            //Xtream = new DatabaseService();
             Favorites = new FavoritesService();
             Continue = new ContinueWatchingService();
             SeriesProgress = new SeriesEpisodeService();
@@ -94,6 +110,16 @@ namespace XtreamIPTV.ViewModels
             ShowSeriesCommand = new RelayCommand(_ => CurrentView = SeriesView);
 
             CurrentView = SearchView;
+
+            _hideTimer.Interval = TimeSpan.FromSeconds(1); // Hide after 3 seconds
+            _hideTimer.Tick += (_, _) =>
+            {
+                // Hide the control
+                MenuVisibility = Visibility.Collapsed;
+                _hideTimer.Stop();
+            };
+
+            _hideTimer.Start();
         }
 
         public async Task<bool> PlayEpisode(Episode ep, bool external = false)
@@ -105,29 +131,43 @@ namespace XtreamIPTV.ViewModels
             string url = string.Empty;
             if (string.IsNullOrEmpty(ep.StreamUrl))
             {
-                HttpClient tmdbclient = new HttpClient();
-                tmdbclient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", ConfigurationManager.AppSettings["Bearer"]);
-                tmdbclient.DefaultRequestHeaders.Add("accept", "application/json");
-
-                url = $"https://api.themoviedb.org/3/tv/225171/external_ids?series_id={ep.SeriesId}&language=en-US";
-                var json = await tmdbclient.GetStringAsync(url);
-                var data = JsonSerializer.Deserialize<JsonElement>(json);
-                var imdb_id = data.GetProperty("imdb_id").ToString();
-
-                var plainTextBytes = System.Text.Encoding.UTF8.GetBytes($"{imdb_id}:{ep.SeriesId}/season/{ep.SeasonId}/episode/{ep.EpisodeNumber}");
-                url = $"http://159.203.85.251/play.php?type=series&movieId={ep.EpisodeId}&data={Convert.ToBase64String(plainTextBytes)}";
-                var response = await client.SendAsync(new HttpRequestMessage(HttpMethod.Head, url));
-                if (response == null)
-                    return false;
-                if (response.IsSuccessStatusCode)
+                if (!string.IsNullOrEmpty(ep.DirectSource))
                 {
-                    url = response.RequestMessage?.RequestUri?.AbsoluteUri ?? url;
-                    ep.StreamUrl = url;
+                    url = ep.DirectSource;
+                    var responseds = await client.SendAsync(new HttpRequestMessage(HttpMethod.Head, url));
+                    if (responseds != null && responseds.IsSuccessStatusCode)
+                    {
+                        url = responseds.RequestMessage?.RequestUri?.AbsoluteUri ?? url;
+                        ep.StreamUrl = url;
+                    }
+                } 
+                else 
+                {
+                    HttpClient tmdbclient = new HttpClient();
+                    tmdbclient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", ConfigurationManager.AppSettings["Bearer"]);
+                    tmdbclient.DefaultRequestHeaders.Add("accept", "application/json");
+
+                    url = $"https://api.themoviedb.org/3/tv/225171/external_ids?series_id={ep.SeriesId}&language=en-US";
+                    var json = await tmdbclient.GetStringAsync(url);
+                    var data = JsonSerializer.Deserialize<JsonElement>(json);
+                    var imdb_id = data.GetProperty("imdb_id").ToString();
+
+                    var plainTextBytes = System.Text.Encoding.UTF8.GetBytes($"{imdb_id}:{ep.SeriesId}/season/{ep.SeasonId}/episode/{ep.EpisodeNumber}");
+                    url = $"http://159.203.85.251/play.php?type=series&movieId={ep.EpisodeId}&data={Convert.ToBase64String(plainTextBytes)}";
+                    var response = await client.SendAsync(new HttpRequestMessage(HttpMethod.Head, url));
+                    if (response == null)
+                        return false;
+                    if (response.IsSuccessStatusCode)
+                    {
+                        url = response.RequestMessage?.RequestUri?.AbsoluteUri ?? url;
+                        ep.StreamUrl = url;
+                    }
                 }
-                else
+                if (string.IsNullOrEmpty(ep.StreamUrl))
                 {
                     foreach (string checkpath in urls)
                     {
+                        //HeadlessVidX check if url has video and return direct link to video
                         url = $"http://localhost:3202/get-video?url={WebUtility.UrlEncode(checkpath).Replace("/", "%2F").Replace(":", "%3A")}";
                         var json2 = await client.GetStringAsync(url);
                         var data2 = JsonSerializer.Deserialize<JsonElement>(json2);
@@ -149,7 +189,7 @@ namespace XtreamIPTV.ViewModels
                 }
                 else
                 {
-                    PlayerVM.Play($"series-{ep.EpisodeId}", ep.StreamUrl);
+                    PlayerVM.Play($"series-{ep.EpisodeId}", title, ep.StreamUrl);
                     CurrentView = new HTMLPlayerView { DataContext = PlayerVM };
                     SeriesProgress.SetLastWatched(ep);
                     Title = $"XtreamIPTV Playing {title}";
@@ -169,7 +209,7 @@ namespace XtreamIPTV.ViewModels
                 else
                 {
                     PlayerVM.ErrorMessage = string.Empty;
-                    PlayerVM.Play($"series-{ep.EpisodeId}", ep.StreamUrl);
+                    PlayerVM.Play($"series-{ep.EpisodeId}", title, ep.StreamUrl);
                     CurrentView = new PlayerView { DataContext = PlayerVM };
                     Title = $"XtreamIPTV Playing {title}";
                 }
@@ -213,6 +253,7 @@ namespace XtreamIPTV.ViewModels
                 {
                     foreach (string checkpath in urls)
                     {
+                        //HeadlessVidX check if url has video and return direct link to video
                         url = $"http://localhost:3202/get-video?url={WebUtility.UrlEncode(checkpath).Replace("/", "%2F").Replace(":", "%3A")}";
                         var json = await client.GetStringAsync(url);
                         var data = JsonSerializer.Deserialize<JsonElement>(json);
@@ -232,7 +273,7 @@ namespace XtreamIPTV.ViewModels
                 }
                 else
                 {
-                    PlayerVM.Play($"movie-{movie.Id}", movie.StreamUrl);
+                    PlayerVM.Play($"movie-{movie.Id}", movie.Title, movie.StreamUrl);
                     CurrentView = new HTMLPlayerView { DataContext = PlayerVM };
                     Title = $"XtreamIPTV Playing {movie.Title}";
                 }
@@ -254,8 +295,9 @@ namespace XtreamIPTV.ViewModels
                 else
                 {
                     PlayerVM.ErrorMessage = string.Empty;
-                    PlayerVM.Play($"movie-{movie.Id}", movie.StreamUrl);
+                    PlayerVM.Play($"movie-{movie.Id}", movie.Title, movie.StreamUrl);
                     CurrentView = new PlayerView { DataContext = PlayerVM };
+                    //CurrentView = new PlayerView { DataContext = PlayerVM };
                     Title = $"XtreamIPTV Playing {movie.Title}";
                 }
             }
@@ -328,6 +370,32 @@ namespace XtreamIPTV.ViewModels
         internal void RemoveLastWatched(Movie movie)
         {
             Continue.RemoveProgress($"movie-{movie.Id}");
+        }
+
+        internal void ShowSideNav()
+        {
+            MenuVisibility = Visibility.Visible;
+            _hideTimer.Stop();
+            _hideTimer.Start();
+        }
+
+        internal async Task PlayNextEpisode()
+        {
+            if (SeriesVM == null || SeriesVM.SelectedSeries == null || SeriesVM.SelectedEpisode == null) return;
+
+            var currentEpisodeId = SeriesVM.SelectedEpisode.EpisodeId;
+            var allEpisodes = SeriesVM.SelectedSeries.Seasons.SelectMany(s => s.Episodes).ToList();
+            var lastWatchedEpisode = allEpisodes.FirstOrDefault(n => n.EpisodeId == currentEpisodeId);
+
+            var nextEpisode = allEpisodes.SkipWhile(x => x != lastWatchedEpisode)
+                                    .Skip(1)
+                                    .DefaultIfEmpty(allEpisodes[0]) // Wraps back to the first item if at the end
+                                    .FirstOrDefault();
+
+            if (nextEpisode == null) return;
+
+            SeriesVM.SelectedEpisode = nextEpisode;
+            _ = await PlayEpisode(nextEpisode);
         }
     }
 }

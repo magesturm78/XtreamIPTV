@@ -81,15 +81,8 @@ namespace XtreamIPTV.ViewModels
             get => SelectedSeason?.SelectedEpisode;
             set
             {
+                SelectedSeason = SelectedSeries?.Seasons.FirstOrDefault(s => s.Episodes.Any(e => e.EpisodeId == value?.EpisodeId));
                 SelectedSeason?.SelectedEpisode = value;
-                foreach (var season in SelectedSeries?.Seasons ?? Enumerable.Empty<Season>())
-                {
-                    if (season.SeasonNumber != value?.SeasonId)
-                    {
-                        season.SelectedEpisode = null;
-                    }
-                }
-                //_selectedEpisode = value;
                 PropertyChanged?.Invoke(this, new(nameof(SelectedEpisode)));
             }
         }
@@ -275,7 +268,7 @@ namespace XtreamIPTV.ViewModels
         public bool IsFavorite(Series m) =>
                 _favorites.IsFavorite($"series-{m.Id}");
 
-        internal object GetSeriesTitle(int seriesId)
+        internal string GetSeriesTitle(int seriesId)
         {
             return AllSeries.FirstOrDefault(s => s.Id == seriesId)?.Title ?? "Unknown Series";
         }
