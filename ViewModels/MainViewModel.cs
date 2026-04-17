@@ -226,7 +226,7 @@ namespace XtreamIPTV.ViewModels
         public async Task PlayMovie(Movie movie, bool external = false)
         {
             HttpClient client = new();
-            Directory.GetFiles("E:\\Movies",$"{movie.Id}*.*").ToList().ForEach(f =>
+            Directory.GetFiles("E:\\Movies",$"{movie.Id}.*.*").ToList().ForEach(f =>
             {
                 movie.StreamUrl = f;
             });
@@ -282,9 +282,16 @@ namespace XtreamIPTV.ViewModels
             {
                 if (movie.StreamUrl.StartsWith("http"))
                 {
-                    var response2 = await client.SendAsync(new HttpRequestMessage(HttpMethod.Head, movie.StreamUrl));
+                    try
+                    {
+                        var response2 = await client.SendAsync(new HttpRequestMessage(HttpMethod.Head, movie.StreamUrl));
 
-                    movie.StreamUrl = response2?.RequestMessage?.RequestUri?.AbsoluteUri ?? movie.StreamUrl;
+                        movie.StreamUrl = response2?.RequestMessage?.RequestUri?.AbsoluteUri ?? movie.StreamUrl;
+                    }
+                    catch (Exception ex)
+                    {
+                        Debug.WriteLine(ex);
+                    }
                 }
                 if (external)
                 {

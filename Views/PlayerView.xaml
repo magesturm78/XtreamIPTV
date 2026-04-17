@@ -59,7 +59,8 @@ M19.3247 6.26245C19.7321 5.8895 20.3646 5.91738 20.7376 6.32472C22.1408 7.8573 2
                 <SolidColorBrush Color="Black" Opacity="0.25" />
             </Grid.Background>
             <TextBlock Grid.Column="0" Name="txtCurrentPosition" Text="0:00:00" Foreground="White" Margin="5,10,5,10"  />
-            <Slider Grid.Column="1" Name="positionSlider"  PreviewMouseUp="positionSlider_PreviewMouseUp" Margin="5,10,5,10" SmallChange="10" LargeChange="60"/>
+            <Slider Grid.Column="1" Name="positionSlider"  PreviewMouseUp="positionSlider_PreviewMouseUp" ValueChanged="positionSlider_ValueChanged"
+                    Margin="5,10,5,10" SmallChange="10" LargeChange="60"/>
             <TextBlock Grid.Column="2" Name="txtTotalDuration" Text="0:00:00" Foreground="White" Margin="5,10,5,10"/>
         </Grid>
         <Grid Grid.Row="2" x:Name="VideoControls">
@@ -89,6 +90,7 @@ M19.3247 6.26245C19.7321 5.8895 20.3646 5.91738 20.7376 6.32472C22.1408 7.8573 2
                 <TextBlock Text="{Binding Path=Value, ElementName=sldVolume, StringFormat={}{0:P0}}" Foreground="White" Margin="5,10,5,10" VerticalAlignment="Center"/>
             </StackPanel>
             <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Center">
+                <TextBlock x:Name="ResolutionText" Foreground="White" Margin="5,10,5,10" VerticalAlignment="Center" FontSize="35"/>
                 <Button x:Name="NextButton" Margin="5,10,5,10" Width="50" Height="50" Background="Transparent" BorderThickness="0" Click="NextButton_Click">
                     <Path Data="{StaticResource NextIconData}" 
                       Fill="White" Stretch="Uniform" Margin="5"/>

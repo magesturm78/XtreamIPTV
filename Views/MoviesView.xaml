@@ -6,7 +6,6 @@
              mc:Ignorable="d" 
              x:Class="XtreamIPTV.Views.MoviesView"
              d:DesignHeight="720" d:DesignWidth="1080">
-
     <Grid Margin="0">
         <Grid.RowDefinitions>
             <RowDefinition Height="420"/>
@@ -33,11 +32,11 @@
         <Canvas Grid.Row="0" Grid.Column="1" x:Name="MovieInfoCanvas" Height="390" >
             <Image Source="{Binding SelectedMovie.Backdrop, TargetNullValue={x:Null}}" Height="420" Canvas.Right="20" Canvas.Top="-15"/>
             <StackPanel Width="800" HorizontalAlignment="Left" VerticalAlignment="Top" Canvas.Top="8" Canvas.Left="8">
-                <TextBlock Text="{Binding SelectedMovie.Title}" FontSize="25" FontWeight="Bold" TextWrapping="Wrap" Foreground="White" />
-                <TextBlock Text="{Binding SelectedMovie.ReleaseInfo}" FontSize="15" TextWrapping="Wrap" Foreground="White" Margin="0,5,0,0" />
-                <TextBlock Text="{Binding SelectedMovie.Plot}" FontSize="20" TextWrapping="Wrap" Foreground="White" Margin="0,5,0,0" />
-                <TextBlock Text="{Binding SelectedMovie.DirectorInfo}" FontSize="10" TextWrapping="Wrap" Foreground="White" Margin="0,10,0,0"/>
-                <TextBlock Text="{Binding SelectedMovie.CastInfo}" FontSize="10" TextWrapping="Wrap" Foreground="White" Margin="0,10,0,0"/>
+                <TextBlock Text="{Binding SelectedMovie.Title, TargetNullValue=''}" FontSize="25" FontWeight="Bold" TextWrapping="Wrap" Foreground="White" />
+                <TextBlock Text="{Binding SelectedMovie.ReleaseInfo, TargetNullValue=''}" FontSize="15" TextWrapping="Wrap" Foreground="White" Margin="0,5,0,0" />
+                <TextBlock Text="{Binding SelectedMovie.Plot, TargetNullValue=''}" FontSize="20" TextWrapping="Wrap" Foreground="White" Margin="0,5,0,0" />
+                <TextBlock Text="{Binding SelectedMovie.DirectorInfo, TargetNullValue=''}" FontSize="10" TextWrapping="Wrap" Foreground="White" Margin="0,10,0,0"/>
+                <TextBlock Text="{Binding SelectedMovie.CastInfo, TargetNullValue=''}" FontSize="10" TextWrapping="Wrap" Foreground="White" Margin="0,10,0,0"/>
             </StackPanel>
             <Button x:Name="PlayButton" Content="Play" Width="150" Height="50" VerticalAlignment="Bottom" HorizontalAlignment="Left" Margin="5" 
                 Background="LightBlue" FontWeight="Bold" FontSize="25" Canvas.Bottom="5" Canvas.Left="175" Click="Button_Click"/>
@@ -115,11 +114,11 @@
                     <Border BorderBrush="Black"  BorderThickness="4" Margin="0" Padding="0" CornerRadius="10" Background="Transparent">
                         <StackPanel Orientation="Vertical" VerticalAlignment="Top" Background="Transparent" >
                             <Canvas Height="230" Width="154">
-                                <Image Width="154" Source="{Binding Poster, TargetNullValue={x:Null}}" VerticalAlignment="Top" />
-                                <TextBlock Canvas.Left="0" Canvas.Top="198" Text="{Binding Rating}" FontSize="20" Background="#7F000000"/>
+                                <Image Width="154" Source="{Binding Poster, TargetNullValue='https://motivatevalmorgan.com/wp-content/uploads/2016/06/default-movie-1-1-204x300.jpg'}" VerticalAlignment="Top" />
+                                <TextBlock Canvas.Left="0" Canvas.Top="198" Text="{Binding Rating, TargetNullValue=''}" FontSize="20" Background="#7F000000"/>
                                 <!--<TextBlock Canvas.Left="0" Canvas.Top="0" Text="{Binding Path=Similiar}" Foreground="Yellow" FontSize="25" Background="#5F000000"/>-->
                             </Canvas>
-                            <TextBlock x:Name="titleText" TextWrapping="Wrap" Width="150" Height="50" Text="{Binding Title}" FontSize="15"/>
+                            <TextBlock x:Name="titleText" TextWrapping="Wrap" Width="150" Height="50" Text="{Binding Title, TargetNullValue=''}" FontSize="15"/>
                         </StackPanel>
                     </Border>
                 </DataTemplate>

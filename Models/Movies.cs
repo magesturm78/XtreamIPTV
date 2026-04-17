@@ -6,7 +6,7 @@ namespace XtreamIPTV.Models
     public class Movie: ICloneable
     {
         public int Id { get; set; }
-        public string Poster { get; set; } = string.Empty;
+        public string? Poster { get; set; } = string.Empty;
         public string? Backdrop { get; internal set; } = null;
         public string Title { get; set; } = string.Empty;
         public string Plot { get; set; } = string.Empty;

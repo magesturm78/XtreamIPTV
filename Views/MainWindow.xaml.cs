@@ -24,13 +24,21 @@ namespace XtreamIPTV.Views
 
         private void Window_KeyDown(object sender, System.Windows.Input.KeyEventArgs e)
         {
-            if (e.Key == System.Windows.Input.Key.Space)
+            if (MainViewModel.Instance.CurrentView is PlayerView pv)
             {
-                if (MainViewModel.Instance.CurrentView is PlayerView pv)
+                if (e.Key == System.Windows.Input.Key.Space)
                 {
                     pv.PlayButton_Click(null, null);
                 }
-                
+                else if (e.Key == System.Windows.Input.Key.Left)
+                {
+                    pv.Button_Click(null, null);
+                }
+                else if (e.Key == System.Windows.Input.Key.Right)
+                {
+                    pv.Button_Click_1(null, null);
+                }
+
             }
         }
     }

@@ -6,6 +6,7 @@ using System.IO;
 using System.Linq;
 using System.Net.Http;
 using System.Net.Http.Headers;
+using System.Reflection;
 using System.Text.Json;
 using System.Text.Json.Nodes;
 using System.Threading;
@@ -111,10 +112,10 @@ namespace XtreamIPTV.Services
 
             foreach (var s in data)
             {
-                var id = s.GetProperty("series_id").GetInt32();
+                var id = int.Parse(s.GetProperty("series_id").ToString());
                 var name = s.GetProperty("name").GetString() ?? "";
                 var plot = s.TryGetProperty("plot", out var p) ? p.GetString() ?? "" : "";
-                var rating = s.TryGetProperty("rating", out var r) ? r.GetDouble() : 0.0;
+                var rating = s.TryGetProperty("rating", out var r) ? double.Parse(r.ToString() != "undefined" ? r.ToString() : "0.0") : 0.0;
                 var lang = s.TryGetProperty("lang", out var l) ? l.GetString() ?? "" : "";
                 var cover = s.TryGetProperty("cover", out var m) ? m.GetString() ?? "" : "";
                 var backdrop_path = string.Empty;
@@ -138,6 +139,13 @@ namespace XtreamIPTV.Services
                     Debug.WriteLine($"Error parsing backdrop_path for series {id}: {ex.Message}");
                 }
                 var category_id = int.Parse(s.GetProperty("category_id").ToString());
+
+                if (cover != null && !cover.StartsWith("http"))
+                    cover = null;
+                if (cover != null && cover == "https://www.freeiconspng.com/thumbs/movies-folder-icon/hd-movies-folder-popcorn-images-20.png")
+                    cover = null;
+                if (string.IsNullOrEmpty(backdrop_path))
+                    backdrop_path = cover;
 
                 var releaseDate = DateTime.MinValue;
 
@@ -191,12 +199,12 @@ namespace XtreamIPTV.Services
                     foreach (var ep in epsArray.EnumerateArray())
                     {
                         var title = ep.GetProperty("title").GetString() ?? "";
-                        var epNum = ep.GetProperty("episode_num").GetInt32();
-                        var id = ep.GetProperty("id").GetInt32();
+                        var epNum = int.Parse(ep.GetProperty("episode_num").ToString());
+                        var id = int.Parse(ep.GetProperty("id").ToString());
                         var info = ep.GetProperty("info");
-                        var cover_big = info.TryGetProperty("cover_big", out var cb) ? cb.GetString() ?? null : null;
-                        var plot = info.TryGetProperty("plot", out var p) ? p.GetString() ?? "" : "";
-                        var extension = ep.TryGetProperty("container_extension", out var e) ? e.GetString() ?? string.Empty : string.Empty;
+                        var cover_big = info.TryGetProperty("cover_big", out var cb) ? cb.ToString() ?? null : null;
+                        var plot = info.TryGetProperty("plot", out var p) ? p.ToString() ?? "" : "";
+                        var extension = ep.TryGetProperty("container_extension", out var e) ? e.ToString() ?? string.Empty : string.Empty;
                         var url = $"{_baseUrl}/series/{_username}/{_password}/{id}.{extension}";
 
                         if (string.IsNullOrEmpty(cover_big))
@@ -235,17 +243,45 @@ namespace XtreamIPTV.Services
             var list = new List<Movie>();
             foreach (var m in data)
             {
-                var id = m.GetProperty("stream_id").GetInt32();
+                var id = int.Parse(m.GetProperty("stream_id").ToString());
                 var name = m.GetProperty("name").GetString() ?? "";
                 var poster = m.GetProperty("stream_icon").GetString() ?? "";
                 var plot = m.TryGetProperty("plot", out var p) ? p.GetString() ?? "" : "";
-                var rating = m.TryGetProperty("rating", out var r) ? r.GetDouble() : 0.0;
+                var rating = m.TryGetProperty("rating", out var r) ? double.Parse(r.ToString() != "undefined" ? r.ToString() : "0.0") : 0.0;
                 var lang = m.TryGetProperty("lang", out var l) ? l.GetString() ?? "" : "";
-                var category_id = m.GetProperty("category_id").GetInt32();
+                var category_id = int.Parse(m.GetProperty("category_id").ToString());
                 var direct_source = m.TryGetProperty("direct_source", out var ds) ? ds.ToString() ?? "" : "";
-                var backdrop_path = m.TryGetProperty("backdrop_path", out var bp) ? bp.GetString() ?? "" : "";
                 var releaseDate = DateTime.MinValue;
                 var added = m.TryGetProperty("added", out var t) ? long.Parse(t.ToString() ?? "0") : 0;
+
+                var backdrop_path = string.Empty;
+                try
+                {
+                    if (m.TryGetProperty("backdrop_path", out var n))
+                    {
+                        if (n.ValueKind == JsonValueKind.Array)
+                        {
+                            var arr = n.EnumerateArray().Select(x => x.GetString() ?? "").Where(x => !string.IsNullOrEmpty(x)).ToList();
+                            backdrop_path = arr.FirstOrDefault();
+                        }
+                        else
+                        {
+                            backdrop_path = n.GetString() ?? "";
+                        }
+                    }
+                }
+                catch (Exception ex)
+                {
+                    Debug.WriteLine($"Error parsing backdrop_path for series {id}: {ex.Message}");
+                }
+                //if (!string.IsNullOrEmpty(poster) && poster.StartsWith("data:"))
+                //    poster = null;
+                if (poster != null && !poster.StartsWith("http"))
+                    poster = null;
+                if (poster != null && poster == "https://www.freeiconspng.com/thumbs/movies-folder-icon/hd-movies-folder-popcorn-images-20.png")
+                    poster = null;
+                if (string.IsNullOrEmpty(backdrop_path))
+                    backdrop_path = poster;
 
                 if (m.TryGetProperty("releasedate", out var rd) && rd.ValueKind == JsonValueKind.String)
                 {
@@ -334,10 +370,30 @@ namespace XtreamIPTV.Services
             var data = JsonSerializer.Deserialize<JsonElement>(json);
 
             var info = data.GetProperty("info");
-            var backdrop = info.TryGetProperty("backdrop_path", out JsonElement bp) ? bp.GetString() : "";
             var genre = info.GetProperty("genre").GetString() ?? "";
             var cast = info.GetProperty("cast").GetString() ?? "";
             var director = info.GetProperty("director").GetString() ?? "";
+
+            var backdrop_path = string.Empty;
+            try
+            {
+                if (info.TryGetProperty("backdrop_path", out var n))
+                {
+                    if (n.ValueKind == JsonValueKind.Array)
+                    {
+                        var arr = n.EnumerateArray().Select(x => x.GetString() ?? "").Where(x => !string.IsNullOrEmpty(x)).ToList();
+                        backdrop_path = arr.FirstOrDefault();
+                    }
+                    else
+                    {
+                        backdrop_path = n.GetString() ?? "";
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine($"Error parsing backdrop_path for series {movie.Id}: {ex.Message}");
+            }
 
             if (info.TryGetProperty("releasedate", out var rd) && rd.ValueKind == JsonValueKind.String)
             {
@@ -347,8 +403,8 @@ namespace XtreamIPTV.Services
                 genre = $"{rd.GetString()} * {genre}";
             }
 
-            if (!string.IsNullOrEmpty(backdrop))
-                movie.Backdrop = backdrop;
+            if (!string.IsNullOrEmpty(backdrop_path))
+                movie.Backdrop = backdrop_path;
 
             if (!string.IsNullOrEmpty(genre))
                 movie.ReleaseInfo = genre;

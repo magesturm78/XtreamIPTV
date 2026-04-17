@@ -25,9 +25,7 @@ namespace XtreamIPTV.Views
             _timer.Interval = TimeSpan.FromSeconds(1);
             _timer.Tick += (_, _) =>
             {
-                VM?.SavePosition(VideoPlayer.Position.TotalSeconds);
-                txtCurrentPosition.Text = VideoPlayer.Position.ToString(@"hh\:mm\:ss");
-                positionSlider.Value = VideoPlayer.Position.TotalSeconds;
+                UpdatePositionDisplay();
             };
 
             _hideTimer.Interval = TimeSpan.FromSeconds(3); // Hide after 3 seconds
@@ -44,6 +42,11 @@ namespace XtreamIPTV.Views
             _hideTimer.Start();
             
             VideoPlayer.MediaFailed += (o, args) => {
+                if (args.ErrorException.Message.ToString() == "0xC00D11D2")
+                {
+                    VM?.ErrorMessage = $"Access Denied while trying to play {VM?.Title}";
+                    return;
+                }
                 VM?.ErrorMessage = "Media Failed: " + args.ErrorException.Message;
             };
 
@@ -58,7 +61,25 @@ namespace XtreamIPTV.Views
                     txtTotalDuration.Text = duration.ToString(@"hh\:mm\:ss");
                     positionSlider.Maximum = duration.TotalSeconds;
                     positionSlider.Value = VideoPlayer.Position.TotalSeconds;
+                    if (duration.TotalMinutes < 30)
+                    {
+                        positionSlider.SmallChange = 10; //10 Seconds
+                        positionSlider.LargeChange = 30; //30 Seconds
+                    }
+                    else
+                    if (duration.TotalMinutes < 60)
+                    {
+                        positionSlider.SmallChange = 10; //10 Seconds
+                        positionSlider.LargeChange = 60; //1 Minute
+                    } 
+                    else
+                    {
+                        positionSlider.SmallChange = 30; //30 Seconds
+                        positionSlider.LargeChange = 300; //5 Minutes
+                    }
                 }
+                ResolutionText.Text = $"{VideoPlayer.NaturalVideoWidth}x{VideoPlayer.NaturalVideoHeight}";
+
                 _timer.Start();
             };
 
@@ -90,6 +111,23 @@ namespace XtreamIPTV.Views
                 Pause();
                 VM?.SavePosition(VideoPlayer.Position.TotalSeconds);
             };
+        }
+
+        private bool UpdatePositionDisplay()
+        {
+            VM?.SavePosition(VideoPlayer.Position.TotalSeconds);
+            if (Mouse.LeftButton == MouseButtonState.Pressed)
+                return false; // Don't update position while user is dragging the slider
+
+            if (VideoPlayer.Position.TotalSeconds > positionSlider.Maximum)
+            {
+                return false;
+                //txtTotalDuration.Text = (TimeSpan.FromSeconds(VideoPlayer.Position.TotalSeconds)).ToString(@"hh\:mm\:ss");
+                //positionSlider.Maximum = VideoPlayer.Position.TotalSeconds;
+            }
+
+            positionSlider.Value = VideoPlayer.Position.TotalSeconds;
+            return true;
         }
 
         private void VideoPlayer_MediaEnded(object sender, System.Windows.RoutedEventArgs e)
@@ -149,14 +187,16 @@ namespace XtreamIPTV.Views
             PlayPauseIcon.Data = (Geometry)FindResource("PlayIconData");
         }
 
-        private void Button_Click(object sender, RoutedEventArgs e)
+        public void Button_Click(object sender, RoutedEventArgs e)
         {
             VideoPlayer.Position -= TimeSpan.FromSeconds(10);
+            UpdatePositionDisplay();
         }
 
-        private void Button_Click_1(object sender, RoutedEventArgs e)
+        public void Button_Click_1(object sender, RoutedEventArgs e)
         {
             VideoPlayer.Position += TimeSpan.FromSeconds(10);
+            UpdatePositionDisplay();
         }
 
         private void Button_Click_2(object sender, RoutedEventArgs e)
@@ -229,6 +269,11 @@ namespace XtreamIPTV.Views
             {
                 PlayButton_Click(sender, null);
             }
+        }
+
+        private void positionSlider_ValueChanged(object sender, RoutedPropertyChangedEventArgs<double> e)
+        {
+            txtCurrentPosition.Text = TimeSpan.FromSeconds(positionSlider.Value).ToString(@"hh\:mm\:ss");
         }
     }
 }

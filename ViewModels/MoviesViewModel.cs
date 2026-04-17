@@ -153,7 +153,7 @@ namespace XtreamIPTV.ViewModels
             SelectedCategory = Categories.FirstOrDefault(c => c.Id == -2);//Default to Favorites
         }
 
-        public void ApplyFilters()
+        public async void ApplyFilters()
         {
             FilteredMovies.Clear();
             MovieCount = ROW_SIZE * 10;
@@ -216,12 +216,14 @@ namespace XtreamIPTV.ViewModels
         public async void GetSelectedMovieData()
         {
             if (_selectedMovie == null) return;
+            var movie = _selectedMovie;
             //if (!string.IsNullOrEmpty(_selectedMovie.Backdrop)) return;
-            if (!string.IsNullOrEmpty(_selectedMovie.ReleaseInfo) && !_selectedMovie.ReleaseInfo.EndsWith(" * ")) return;
+            if (!string.IsNullOrEmpty(movie.ReleaseInfo) && !movie.ReleaseInfo.EndsWith(" * ")) return;
 
 
-            SelectedMovie = await _xtream.GetMovieDetailAsync(_selectedMovie);
-            PropertyChanged?.Invoke(this, new(nameof(SelectedMovie)));
+            movie = await _xtream.GetMovieDetailAsync(movie);
+            if (SelectedMovie?.Id == movie.Id)
+                PropertyChanged?.Invoke(this, new(nameof(SelectedMovie)));
         }
 
         public void ToggleFavorite()

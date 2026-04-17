@@ -83,6 +83,10 @@ namespace XtreamIPTV.Views
                 {
                     await mvm.PlayMovie(m);
                 }
+                catch (Exception ex)
+                {
+                    MessageBox.Show($"Error playing movie: {ex.Message}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+                }
                 finally
                 {
                     // Revert cursor to default after the operation is complete
