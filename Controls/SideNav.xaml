@@ -17,6 +17,10 @@
                 Command="{Binding DataContext.ShowSeriesCommand,
                                   RelativeSource={RelativeSource AncestorType=Window}}"/>
 
+        <Button Content="Settings" Width="50"
+                Margin="0,0,10,0"                
+                Command="{Binding DataContext.ShowSettingsCommand,
+                                  RelativeSource={RelativeSource AncestorType=Window}}"/>
         <!--<Button Content="Player" Width="50"
                 Margin="0,0,10,0"                
                 Command="{Binding DataContext.ShowPlayerCommand,

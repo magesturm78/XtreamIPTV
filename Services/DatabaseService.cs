@@ -110,7 +110,9 @@ namespace XtreamIPTV.Services
                 genre = $"{rd.GetString()} * {genre}";
             }
 
-            movie.Backdrop = backdrop;
+            if (!string.IsNullOrWhiteSpace(backdrop))
+                movie.Backdrop = backdrop;
+
             movie.ReleaseInfo = genre;
             if (!string.IsNullOrEmpty(cast))
                 movie.CastInfo = $"Cast: {cast}";

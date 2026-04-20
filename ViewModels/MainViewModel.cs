@@ -72,10 +72,12 @@ namespace XtreamIPTV.ViewModels
         public SeriesViewModel SeriesVM { get; }
         public PlayerViewModel PlayerVM { get; }
         public SearchViewModel SearchVM { get; }
+        public SettingsViewModel SettingsVM { get; }
 
         public SearchView SearchView { get; }
         public MoviesView MoviesView { get; }
         public SeriesView SeriesView { get; }
+        public SettingsView SettingsView { get; }
 
         public FavoritesService Favorites { get; }
         public ContinueWatchingService Continue { get; }
@@ -85,13 +87,14 @@ namespace XtreamIPTV.ViewModels
         public ICommand ShowSearchCommand { get; }
         public ICommand ShowSeriesCommand { get; }
         public ICommand ShowMoviesCommand { get; }
+        public ICommand ShowSettingsCommand { get; }
 
         public MainViewModel()
         {
             Instance = this;
             //NCW
-            Xtream = new XtreamCodesService();
-            //Xtream = new DatabaseService();
+            //Xtream = new XtreamCodesService();
+            Xtream = new DatabaseService();
             Favorites = new FavoritesService();
             Continue = new ContinueWatchingService();
             SeriesProgress = new SeriesEpisodeService();
@@ -100,14 +103,17 @@ namespace XtreamIPTV.ViewModels
             SeriesVM = new SeriesViewModel(Xtream, Favorites, SeriesProgress);
             SearchVM = new SearchViewModel(MoviesVM, SeriesVM);
             PlayerVM = new PlayerViewModel(Continue);
+            SettingsVM = new SettingsViewModel();
 
             SearchView = new SearchView { DataContext = SearchVM };
             MoviesView = new MoviesView { DataContext = MoviesVM };
             SeriesView = new SeriesView { DataContext = SeriesVM };
+            SettingsView = new SettingsView { DataContext = SettingsVM };
 
             ShowSearchCommand = new RelayCommand(_ => CurrentView = SearchView);
             ShowMoviesCommand = new RelayCommand(_ => CurrentView = MoviesView);
             ShowSeriesCommand = new RelayCommand(_ => CurrentView = SeriesView);
+            ShowSettingsCommand = new RelayCommand(_ => CurrentView = SettingsView);
 
             CurrentView = SearchView;
 

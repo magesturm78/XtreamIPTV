@@ -32,9 +32,9 @@ namespace XtreamIPTV.Views
             _hideTimer.Tick += (_, _) =>
             {
                 // Hide the control
-                VideoControls.Visibility = Visibility.Hidden;
-                PositionGrid.Visibility = Visibility.Hidden;
-                TitleText.Visibility = Visibility.Hidden;
+                VideoControls.Visibility = Visibility.Collapsed;
+                PositionGrid.Visibility = Visibility.Collapsed;
+                TitleText.Visibility = Visibility.Collapsed;
                 Cursor = Cursors.None;
                 _hideTimer.Stop();
             }; 
@@ -98,7 +98,7 @@ namespace XtreamIPTV.Views
                     {
                         positionSlider.SmallChange = 30;
                         positionSlider.LargeChange = 300;
-                        NextButton.Visibility = Visibility.Hidden;
+                        NextButton.Visibility = Visibility.Collapsed;
                     }
                 }
                 Play();
@@ -274,6 +274,15 @@ namespace XtreamIPTV.Views
         private void positionSlider_ValueChanged(object sender, RoutedPropertyChangedEventArgs<double> e)
         {
             txtCurrentPosition.Text = TimeSpan.FromSeconds(positionSlider.Value).ToString(@"hh\:mm\:ss");
+        }
+
+        private void ResolutionText_MouseDown(object sender, MouseButtonEventArgs e)
+        {
+            var window = System.Windows.Window.GetWindow(this);
+            //var topBorderHeight = window.Height - window.RenderSize.Height;
+            var topBorderHeight = 32;
+            window.Width = VideoPlayer.NaturalVideoWidth;
+            window.Height = VideoPlayer.NaturalVideoHeight + topBorderHeight;
         }
     }
 }
