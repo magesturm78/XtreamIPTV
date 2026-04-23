@@ -5,7 +5,7 @@
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" 
              mc:Ignorable="d" 
              x:Class="XtreamIPTV.Views.PlayerView"
-             d:DesignHeight="720" d:DesignWidth="1080"
+             d:DesignHeight="720" d:DesignWidth="1280"
              MouseMove="Window_MouseMove">
     <UserControl.Resources>
         <!-- Play Icon Path -->
@@ -85,9 +85,15 @@ M19.3247 6.26245C19.7321 5.8895 20.3646 5.91738 20.7376 6.32472C22.1408 7.8573 2
                           Fill="White" Stretch="Uniform" Margin="5"/>
                 </Button>
                 <Image Source="{StaticResource VolumeIconData}" Width="40" Height="40" Margin="5"/>
-                <Slider Name="sldVolume" Grid.Row ="2" Value="{Binding ElementName=VideoPlayer, Path=Volume}" Minimum="0" Maximum="1" Width="400" 
+                <Slider Name="sldVolume" Grid.Row ="2" Value="{Binding ElementName=VideoPlayer, Path=Volume}" Minimum="0" Maximum="1" Width="400"
                         Margin="5,10,5,10" VerticalAlignment="Center" TickFrequency="0.01" IsSnapToTickEnabled="True" SmallChange="0.01" LargeChange="0.1"/>
                 <TextBlock Text="{Binding Path=Value, ElementName=sldVolume, StringFormat={}{0:P0}}" Foreground="White" Margin="5,10,5,10" VerticalAlignment="Center"/>
+                <TextBlock Text="Speed" Foreground="White" Margin="5,10,5,10" VerticalAlignment="Center" FontSize="20"/>
+                <Slider Name="sldSpeed" Grid.Row ="2" Value="{Binding ElementName=VideoPlayer, Path=SpeedRatio}" 
+                        Minimum="0.25" Maximum="2" Width="200" TickPlacement="TopLeft"
+                        Margin="5,10,5,10" VerticalAlignment="Center" TickFrequency="0.25"
+                        IsSnapToTickEnabled="True" SmallChange="0.25" LargeChange="0.25"/>
+                <TextBlock Text="{Binding Path=Value, ElementName=sldSpeed, StringFormat={}{0:P0}}" Foreground="White" Margin="5,10,5,10" VerticalAlignment="Center"/>
             </StackPanel>
             <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Center">
                 <TextBlock x:Name="ResolutionText" Foreground="White" Margin="5,10,5,10" VerticalAlignment="Center" FontSize="35" MouseDown="ResolutionText_MouseDown"/>
