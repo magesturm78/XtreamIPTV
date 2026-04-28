@@ -10,6 +10,7 @@ using System.Windows.Media;
 using System.Windows.Media.Imaging;
 using XtreamIPTV.Models;
 using XtreamIPTV.ViewModels;
+using static Microsoft.EntityFrameworkCore.DbLoggerCategory;
 
 namespace XtreamIPTV.Views
 {
@@ -312,6 +313,60 @@ namespace XtreamIPTV.Views
             movievm.Sort = movievm.Sort;
             scrollTime = DateTime.Now;
             BackButton.Visibility = Visibility.Hidden;
+        }
+
+        private void DirectorHyperlink_RequestNavigate(object sender, System.Windows.Navigation.RequestNavigateEventArgs e)
+        {
+            if (DataContext is not MoviesViewModel vm) return;
+
+            var temp = e.Uri.ToString().Split(":");
+            if (temp[0] == "director")
+            {
+                var scrollViewer = GetScrollViewer(MoviesListBox);
+                scrollViewer?.ScrollToTop();
+                vm.GetMoviesByDirector(temp[1]);
+                BackButton.Visibility = Visibility.Visible;
+                scrollTime = DateTime.Now;
+            }
+        }
+
+        private void ActorHyperlink_RequestNavigate(object sender, System.Windows.Navigation.RequestNavigateEventArgs e)
+        {
+            if (DataContext is not MoviesViewModel vm) return;
+
+            var temp = e.Uri.ToString().Split(":");
+            if (temp[0] == "actor")
+            {
+                var scrollViewer = GetScrollViewer(MoviesListBox);
+                scrollViewer?.ScrollToTop();
+                vm.GetMoviesByActor(temp[1]);
+                BackButton.Visibility = Visibility.Visible;
+                scrollTime = DateTime.Now;
+            }
+        }
+
+        private void Hyperlink_RequestNavigate(object sender, System.Windows.Navigation.RequestNavigateEventArgs e)
+        {
+            // Bubble up to MainViewModel via DataContext of Window
+            var window = System.Windows.Window.GetWindow(this);
+            if (window?.DataContext is MainViewModel mvm)
+            {
+                Cursor = Cursors.Wait;
+
+                try
+                {
+                    mvm.NavigateToUri(e.Uri);
+                }
+                catch (Exception ex)
+                {
+                    MessageBox.Show($"Error playing movie: {ex.Message}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+                }
+                finally
+                {
+                    // Revert cursor to default after the operation is complete
+                    Cursor = Cursors.Arrow;
+                }
+            }
         }
     }
 }

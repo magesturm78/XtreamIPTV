@@ -301,16 +301,43 @@ namespace XtreamIPTV.ViewModels
                 }
                 if (external)
                 {
-                    string exe = "C:\\Program Files\\MPC-HC\\mpc-hc64.exe";
-                    string arguments = $"\"{movie.StreamUrl}\"";
-                    Process.Start(exe, arguments);
+                    if (!movie.StreamUrl.StartsWith(@"E:\"))
+                    {
+                        // Start streaming the download
+                        char[] invalidChars = Path.GetInvalidFileNameChars();
+
+                        // Use LINQ Aggregate for a concise replacement
+                        // This approach traverses the string once
+                        string safeName = invalidChars.Aggregate(movie.Title, (current, c) => current.Replace(c, '_'));
+
+                        // Optional: Trim trailing periods and spaces, which are invalid on Windows
+                        safeName = safeName.TrimEnd('.', ' ');
+                        string localPath = Path.Combine(@"E:\Movies", $"{movie.Id}.{safeName}.{movie.StreamUrl.Split('.').Last()}");
+
+                        using var response = await client.GetAsync(movie.StreamUrl, HttpCompletionOption.ResponseHeadersRead);
+                        using var streamToRead = await response.Content.ReadAsStreamAsync();
+                        using var fileStream = new FileStream(localPath, FileMode.Create, FileAccess.Write, FileShare.ReadWrite);
+
+                        // Start playing the file (requires media player implementation, e.g., WMP)
+                        string exe = "C:\\Program Files\\MPC-HC\\mpc-hc64.exe";
+                        string arguments = $"\"{localPath}\"";
+                        Process.Start(exe, arguments);
+
+                        // Copy to file while playing
+                        await streamToRead.CopyToAsync(fileStream);
+                    } 
+                    else
+                    {
+                        string exe = "C:\\Program Files\\MPC-HC\\mpc-hc64.exe";
+                        string arguments = $"\"{movie.StreamUrl}\"";
+                        Process.Start(exe, arguments);
+                    }
                 }
                 else
                 {
                     PlayerVM.ErrorMessage = string.Empty;
                     PlayerVM.Play($"movie-{movie.Id}", movie.Title, movie.StreamUrl);
                     CurrentView = new PlayerView { DataContext = PlayerVM };
-                    //CurrentView = new PlayerView { DataContext = PlayerVM };
                     Title = $"XtreamIPTV Playing {movie.Title}";
                 }
             }
@@ -409,6 +436,13 @@ namespace XtreamIPTV.ViewModels
 
             SeriesVM.SelectedEpisode = nextEpisode;
             _ = await PlayEpisode(nextEpisode);
+        }
+
+        internal void NavigateToUri(Uri uri)
+        {
+            PlayerVM.Play($"", "", uri.ToString());
+            CurrentView = new HTMLPlayerView { DataContext = PlayerVM };
+            Title = $"XtreamIPTV {uri}";
         }
     }
 }

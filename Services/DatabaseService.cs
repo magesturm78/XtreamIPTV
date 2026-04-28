@@ -6,6 +6,7 @@ using System.Collections.Generic;
 using System.Configuration;
 using System.Diagnostics;
 using System.Globalization;
+using System.IO;
 using System.Linq;
 using System.Net.Http;
 using System.Net.Http.Headers;
@@ -115,9 +116,9 @@ namespace XtreamIPTV.Services
 
             movie.ReleaseInfo = genre;
             if (!string.IsNullOrEmpty(cast))
-                movie.CastInfo = $"Cast: {cast}";
+                movie.Actors = cast.Split(',').Select(a => new LinkItem { Text = a.Trim(), Url = $"Actor:{a.Trim()}" }).ToList();
             if (!string.IsNullOrEmpty(director))
-                movie.DirectorInfo = $"Director: {director}";
+                movie.Directors = director.Split(',').Select(d => new LinkItem { Text = d.Trim(), Url = $"Director:{d.Trim()}" }).ToList();
             movie.Plot = plot;
             return movie;
         }
@@ -362,6 +363,7 @@ namespace XtreamIPTV.Services
             return new Movie
             {
                 Id = id,
+                NavigaionUrl = "https://www.themoviedb.org/movie/" + id,
                 Title = $"{title} ({release_date[..4]})",
                 ReleaseDate = releaseDate,
                 Backdrop = backdrop,
@@ -371,8 +373,8 @@ namespace XtreamIPTV.Services
                 CategoryId = categoryId,
                 ReleaseInfo = $"{release_date} * {age}{genre}{runtime}",
                 Rating = double.TryParse(rating, out var rat) ? rat : 0.0,
-                CastInfo = $"Cast: {string.Join(", ", cast)}",
-                DirectorInfo = $"Director: {string.Join(", ", director)}",
+                Actors = cast.Select(a => new LinkItem { Text = a.Trim(), Url = $"Actor:{a.Trim()}" }).ToList(),
+                Directors = director.Select(d => new LinkItem { Text = d.Trim(), Url = $"Director:{d.Trim()}" }).ToList(),
                 Languages = langs,
                 OriginalLanguage = langMap.Any(l => l.Value == o_lang) ? langMap.Where(l => l.Value == o_lang).FirstOrDefault().Key : langs.Count() > 0 ? langs[0] : string.Empty,
                 //StreamUrl = $"http://10.0.0.100:9000/movie/12/12/{id}.mp4",

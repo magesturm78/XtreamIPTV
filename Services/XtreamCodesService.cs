@@ -302,6 +302,7 @@ namespace XtreamIPTV.Services
                 list.Add(new Movie
                 {
                     Id = id,
+                    NavigaionUrl = "https://www.themoviedb.org/movie/" + id,
                     Title = name,
                     Plot = plot,
                     Poster = poster,
@@ -410,10 +411,10 @@ namespace XtreamIPTV.Services
                 movie.ReleaseInfo = genre;
 
             if (!string.IsNullOrEmpty(cast))
-                movie.CastInfo = $"Cast: {cast}";
+                movie.Actors = cast.Split(',').Select(a => new LinkItem { Text = a.Trim(), Url = $"Actor:{a.Trim()}" }).ToList();
 
             if (!string.IsNullOrEmpty(director))
-                movie.DirectorInfo = $"Director: {director}";
+                movie.Directors = director.Split(',').Select(d => new LinkItem { Text = d.Trim(), Url = $"Director:{d.Trim()}" }).ToList();
 
             return movie;
         }

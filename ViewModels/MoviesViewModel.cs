@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.ComponentModel;
+using System.IO;
 using System.Linq;
 using System.Security.Permissions;
 using System.Threading.Tasks;
@@ -252,6 +253,24 @@ namespace XtreamIPTV.ViewModels
             FilteredMovies = new ObservableCollection<Movie>(await _xtream.GetSimiliarMovies(movie, AllMovies));
             PropertyChanged?.Invoke(this, new(nameof(FilteredMovies)));
             SelectedMovie = FilteredMovies.FirstOrDefault();
+            FilteredMoviesCount = FilteredMovies.Count();
+        }
+
+        internal void GetMoviesByDirector(string director)
+        {
+            if (string.IsNullOrEmpty(director)) return;
+
+            FilteredMovies = new ObservableCollection<Movie>(AllMovies.Where(x => x.Directors.Any(d => d.Text.Equals(director, StringComparison.OrdinalIgnoreCase))).OrderByDescending(m => m.ReleaseDate));
+            PropertyChanged?.Invoke(this, new(nameof(FilteredMovies)));
+            FilteredMoviesCount = FilteredMovies.Count();
+        }
+
+        internal void GetMoviesByActor(string actor)
+        {
+            if (string.IsNullOrEmpty(actor)) return;
+
+            FilteredMovies = new ObservableCollection<Movie>(AllMovies.Where(x => x.Actors.Any(a => a.Text.Equals(actor, StringComparison.OrdinalIgnoreCase))).OrderByDescending(m => m.ReleaseDate));
+            PropertyChanged?.Invoke(this, new(nameof(FilteredMovies)));
             FilteredMoviesCount = FilteredMovies.Count();
         }
     }
