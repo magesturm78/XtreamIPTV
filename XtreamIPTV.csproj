@@ -7,6 +7,8 @@
 		<Nullable>enable</Nullable>
 		<SupportedOSPlatformVersion>7.0</SupportedOSPlatformVersion>
 		<ApplicationIcon>icon.ico</ApplicationIcon>
+		<AssemblyVersion>1.0.0.1</AssemblyVersion>
+		<FileVersion>1.0.0.1</FileVersion>
 	</PropertyGroup>
 
 	<ItemGroup>

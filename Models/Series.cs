@@ -22,8 +22,8 @@ namespace XtreamIPTV.Models
 
         public long LastModified { get; set; }
         public string ReleaseInfo => $"{Rating} * {ReleaseDate:yyyy-MM-dd} * Seasons: {Seasons.Count} * {Genre}";
-        public string CastInfo { get; set; } = string.Empty;
-        public string DirectorInfo { get; set; } = string.Empty;
+        public List<string> Cast { get; set; } = [];
+        public List<string> Directors { get; set; } = [];
 
         public ObservableCollection<Season> Seasons { get; set; } = new();
 

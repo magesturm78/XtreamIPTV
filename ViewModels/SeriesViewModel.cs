@@ -144,13 +144,15 @@ namespace XtreamIPTV.ViewModels
 
         private IEnumerable<Series> GetFilteredSeries()
         {
+            var seriesProgress = _seriesEpisode.GetSeriesIds();
             var filter = (_selectedCategory?.Id) switch
             {
                 //All
                 -1 => AllSeries,
                 //Favorite
                 -2 => AllSeries.Where(m => _favorites.IsFavorite($"series-{m.Id}")),
-                -3 => AllSeries.Where(m => _seriesEpisode.GetLastWatched(m.Id) > 0),
+                //-3 => AllSeries.Where(m => _seriesEpisode.GetLastWatched(m.Id) > 0),
+                -3 => AllSeries.Where(m => seriesProgress.Contains(m.Id)),
                 _ => _selectedCategory == null ? AllSeries : AllSeries.Where(m => m.CategoryId == _selectedCategory.Id),
             };
             switch (_sort)
@@ -165,6 +167,10 @@ namespace XtreamIPTV.ViewModels
                     filter = filter.OrderByDescending(m => m.Rating);
                     break;
                 default:
+                    if (_selectedCategory?.Id == -3)
+                    {
+                        filter = filter.OrderByDescending(m => seriesProgress.Contains(m.Id) ? seriesProgress.IndexOf(m.Id) : int.MaxValue);
+                    }
                     break;
             }
             if (_decadeFilter > 0)

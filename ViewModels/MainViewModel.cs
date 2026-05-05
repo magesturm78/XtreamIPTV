@@ -57,7 +57,7 @@ namespace XtreamIPTV.ViewModels
         }
         private object? _currentView;
 
-        private Visibility _menuVisibility = Visibility.Hidden;
+        private Visibility _menuVisibility = Visibility.Collapsed;
         public Visibility MenuVisibility
         {
             get => _menuVisibility;
@@ -95,6 +95,7 @@ namespace XtreamIPTV.ViewModels
             //NCW
             //Xtream = new XtreamCodesService();
             Xtream = new DatabaseService();
+
             Favorites = new FavoritesService();
             Continue = new ContinueWatchingService();
             SeriesProgress = new SeriesEpisodeService();
@@ -120,6 +121,11 @@ namespace XtreamIPTV.ViewModels
             _hideTimer.Interval = TimeSpan.FromSeconds(1); // Hide after 3 seconds
             _hideTimer.Tick += (_, _) =>
             {
+                Point mousePos = Mouse.GetPosition(Application.Current.MainWindow);
+                // Check if mouse is on the left side (X < half of width)
+                if (mousePos.X < 25 && mousePos.Y < 250)
+                    return;
+
                 // Hide the control
                 MenuVisibility = Visibility.Collapsed;
                 _hideTimer.Stop();
@@ -231,7 +237,12 @@ namespace XtreamIPTV.ViewModels
 
         public async Task PlayMovie(Movie movie, bool external = false)
         {
-            HttpClient client = new();
+            var handler = new HttpClientHandler
+            {
+                ServerCertificateCustomValidationCallback = (message, cert, chain, errors) => true
+            };
+
+            HttpClient client = new(handler);
             Directory.GetFiles("E:\\Movies",$"{movie.Id}.*.*").ToList().ForEach(f =>
             {
                 movie.StreamUrl = f;
@@ -243,7 +254,9 @@ namespace XtreamIPTV.ViewModels
                         //$"https://vidsrc.cc/v3/embed/movie/{movie.Id}",
                     ];
             string url = string.Empty;
+            //movie.StreamUrl = urls[0];
             //url = await GetPrimewireURL(movie, client);
+            //return;
             if (string.IsNullOrEmpty(movie.StreamUrl))
             {
                 url = $"http://159.203.85.251/play.php?movieId={movie.Id}";
@@ -259,7 +272,7 @@ namespace XtreamIPTV.ViewModels
                 {
                     foreach (string checkpath in urls)
                     {
-                        //HeadlessVidX check if url has video and return direct link to video
+                        ////HeadlessVidX check if url has video and return direct link to video
                         url = $"http://localhost:3202/get-video?url={WebUtility.UrlEncode(checkpath).Replace("/", "%2F").Replace(":", "%3A")}";
                         var json = await client.GetStringAsync(url);
                         var data = JsonSerializer.Deserialize<JsonElement>(json);
@@ -299,39 +312,16 @@ namespace XtreamIPTV.ViewModels
                         Debug.WriteLine(ex);
                     }
                 }
+                //Always download to E:\Movies and play from there to avoid streaming issues and allow external players to play without streaming issues
+                if (!movie.StreamUrl.StartsWith(@"E:\"))
+                {
+                    DownloadMovie(movie, external, client);
+                }
                 if (external)
                 {
-                    if (!movie.StreamUrl.StartsWith(@"E:\"))
-                    {
-                        // Start streaming the download
-                        char[] invalidChars = Path.GetInvalidFileNameChars();
-
-                        // Use LINQ Aggregate for a concise replacement
-                        // This approach traverses the string once
-                        string safeName = invalidChars.Aggregate(movie.Title, (current, c) => current.Replace(c, '_'));
-
-                        // Optional: Trim trailing periods and spaces, which are invalid on Windows
-                        safeName = safeName.TrimEnd('.', ' ');
-                        string localPath = Path.Combine(@"E:\Movies", $"{movie.Id}.{safeName}.{movie.StreamUrl.Split('.').Last()}");
-
-                        using var response = await client.GetAsync(movie.StreamUrl, HttpCompletionOption.ResponseHeadersRead);
-                        using var streamToRead = await response.Content.ReadAsStreamAsync();
-                        using var fileStream = new FileStream(localPath, FileMode.Create, FileAccess.Write, FileShare.ReadWrite);
-
-                        // Start playing the file (requires media player implementation, e.g., WMP)
-                        string exe = "C:\\Program Files\\MPC-HC\\mpc-hc64.exe";
-                        string arguments = $"\"{localPath}\"";
-                        Process.Start(exe, arguments);
-
-                        // Copy to file while playing
-                        await streamToRead.CopyToAsync(fileStream);
-                    } 
-                    else
-                    {
-                        string exe = "C:\\Program Files\\MPC-HC\\mpc-hc64.exe";
-                        string arguments = $"\"{movie.StreamUrl}\"";
-                        Process.Start(exe, arguments);
-                    }
+                    string exe = "C:\\Program Files\\MPC-HC\\mpc-hc64.exe";
+                    string arguments = $"\"{movie.StreamUrl}\"";
+                    Process.Start(exe, arguments);
                 }
                 else
                 {
@@ -344,11 +334,36 @@ namespace XtreamIPTV.ViewModels
             else
             {
                 //url = await GetPrimewireURL(movie, client);
-                Process.Start(new ProcessStartInfo($"https://www.primewire.mov/api/v1/s?tmdb={movie.Id}&type=movie") { UseShellExecute = true });
-                //MessageBox.Show($"Cannot locate {movie.Title}");
+                //Process.Start(new ProcessStartInfo($"https://www.primewire.mov/api/v1/s?tmdb={movie.Id}&type=movie") { UseShellExecute = true });
+                MessageBox.Show($"Cannot locate {movie.Title}");
                 return;
             }
             Title = $"XtreamIPTV Playing {movie.Title}";
+        }
+
+        private async Task<bool> DownloadMovie(Movie movie, bool external, HttpClient client)
+        {
+            // Start streaming the download
+            char[] invalidChars = Path.GetInvalidFileNameChars();
+
+            // Use LINQ Aggregate for a concise replacement
+            // This approach traverses the string once
+            string safeName = invalidChars.Aggregate(movie.Title, (current, c) => current.Replace(c, '_'));
+
+            // Optional: Trim trailing periods and spaces, which are invalid on Windows
+            safeName = safeName.TrimEnd('.', ' ');
+            string localPath = Path.Combine(@"E:\Movies", $"{movie.Id}.{safeName}.{movie.StreamUrl.Split('.').Last()}");
+
+            using var response = await client.GetAsync(movie.StreamUrl, HttpCompletionOption.ResponseHeadersRead);
+            using var streamToRead = await response.Content.ReadAsStreamAsync();
+            using var fileStream = new FileStream(localPath, FileMode.Create, FileAccess.Write, FileShare.ReadWrite);
+
+            // Copy to file while playing
+            await streamToRead.CopyToAsync(fileStream);
+            movie.StreamUrl = localPath;
+            if (!external)
+                PlayerVM.Play($"movie-{movie.Id}", movie.Title, movie.StreamUrl);
+            return true;
         }
 
         private static async Task<string> GetPrimewireURL(Movie movie, HttpClient client)

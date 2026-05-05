@@ -67,7 +67,7 @@ namespace XtreamIPTV.Views
                     var x = data.GetProperty("x").GetInt32();
                     var y = data.GetProperty("y").GetInt32();
                     // Check if mouse is on the left side (X < half of width)
-                    if (x < 25 && y < 200)
+                    if (x < 25 && y < 250)
                     {
                         MainViewModel.Instance.ShowSideNav();
                     }
@@ -126,16 +126,22 @@ namespace XtreamIPTV.Views
                         mvm.SeriesVM.SelectedEpisode = episode;
 
                         string title = $"{mvm.SeriesVM.GetSeriesTitle(episode.SeriesId)} {episode.Title}";
-
                         VM?.Play($"series-{episode.EpisodeId}", title, episode.StreamUrl);
                         VM?.CurrentEpisodeId = $"series-{episode.EpisodeId}";
+                        mvm.SeriesProgress.SetLastWatched(episode);
 
                         mvm.Title = $"XtreamIPTV Playing {title}";
 
                     }
-                    if (VM?.CurrentEpisodeId.StartsWith("movie") == true)
+                    else if (VM?.CurrentEpisodeId.StartsWith("movie") == true)
                     {
                         mvm.ShowMoviesCommand.Execute(this);
+                    }
+                    else if (webView.CoreWebView2.Source.StartsWith("https://www.themoviedb.org/movie/"))
+                    {
+                        var movieid = webView.CoreWebView2.Source.Replace("https://www.themoviedb.org/movie/", "").Split("-")[0];
+                        if (!mvm.MoviesVM.AllMovies.Any(m => m.Id == int.Parse(movieid)))
+                            mvm.MoviesVM.GetMovieDetails(int.Parse(movieid));
                     }
                 }
             };

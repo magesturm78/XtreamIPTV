@@ -18,6 +18,11 @@ namespace XtreamIPTV.ViewModels
         Date,
         Popularity
     }
+    public struct MovieHistoryItem
+    {
+        public Movie SelectedMovie;
+        public ObservableCollection<Movie> FilteredMovies;
+    }
     public class MoviesViewModel : INotifyPropertyChanged
     {
         const int ROW_SIZE = 10;
@@ -26,11 +31,13 @@ namespace XtreamIPTV.ViewModels
         private readonly IIPTVService _xtream;
         private readonly FavoritesService _favorites;
         private readonly ContinueWatchingService _continue;
+        private readonly Stack<MovieHistoryItem> _historyStack = new Stack<MovieHistoryItem>();
 
         public ObservableCollection<Category> Categories { get; set; } = new();
         public ObservableCollection<Movie> AllMovies { get; set; } = new();
         public ObservableCollection<Movie> FilteredMovies { get; set; } = new();
         public ObservableCollection<Movie> SearchedMovies { get; set; } = new();
+        public ObservableCollection<String> AgeRatings { get; set; } = new();
         public int MovieCount { get; set; } = ROW_SIZE * 5;
         public double MovePlayTime 
         { 
@@ -119,6 +126,22 @@ namespace XtreamIPTV.ViewModels
             }
         }
 
+        private string _ageRatingFilter = string.Empty;
+        public string AgeRatingFilter
+        {
+            get
+            {
+                return _languageFilter;
+            }
+            set
+            {
+                _ageRatingFilter = value;
+                ApplyFilters();
+                PropertyChanged?.Invoke(this, new(nameof(AgeRatingFilter)));
+                PropertyChanged?.Invoke(this, new(nameof(FilteredMovies)));
+            }
+        }
+
         private Movie? _selectedMovie;
 
         public MoviesViewModel(IIPTVService @xtream, FavoritesService @favorites, ContinueWatchingService @continue)
@@ -132,6 +155,7 @@ namespace XtreamIPTV.ViewModels
         {
             if (AllMovies.Count > 0) return;
             AllMovies = new ObservableCollection<Movie>(await _xtream.GetMoviesAsync());
+            AgeRatings = new ObservableCollection<string>(["ALL", "R", "NC-17", "G", "NR", "PG-13"]);
             //AllMovies = new ObservableCollection<Movie>(await _xtream.GetMoviesAsync(_selectedCategory.Id,_decadeFilter,LanguageFilter,));
             //AllMovies.Clear();
             //var list = await _xtream.GetMoviesAsync();
@@ -156,6 +180,7 @@ namespace XtreamIPTV.ViewModels
 
         public async void ApplyFilters()
         {
+            _historyStack.Clear();
             FilteredMovies.Clear();
             MovieCount = ROW_SIZE * 10;
             foreach (var m in GetFilteredMovies().Take(MovieCount))
@@ -167,11 +192,13 @@ namespace XtreamIPTV.ViewModels
 
         private IEnumerable<Movie> GetFilteredMovies()
         {
+            var movieProgress = _continue.GetMovieProgress();
             var filter = (_selectedCategory?.Id) switch
             {
                 -1 => AllMovies,
                 -2 => AllMovies.Where(m => _favorites.IsFavorite($"movie-{m.Id}")),
-                -3 => AllMovies.Where(m => _continue.GetProgress($"movie-{m.Id}") > 0.0),
+                //-3 => AllMovies.Where(m => _continue.GetProgress($"movie-{m.Id}") > 0),
+                -3 => AllMovies.Where(m => movieProgress.Contains(m.Id.ToString())),
                 _ => _selectedCategory == null ? AllMovies : AllMovies.Where(m => m.CategoryId == _selectedCategory.Id),
             };
 
@@ -187,6 +214,8 @@ namespace XtreamIPTV.ViewModels
                     filter = filter.OrderByDescending(m => m.Rating);
                     break;
                 default:
+                    if (_selectedCategory?.Id == -3) // History
+                        filter = filter.OrderByDescending(m => movieProgress.IndexOf(m.Id.ToString()));
                     break;
             }
             if (_decadeFilter > 0)
@@ -199,8 +228,22 @@ namespace XtreamIPTV.ViewModels
             {
                 filter = filter.Where(m => m.OriginalLanguage.Equals(_languageFilter, StringComparison.OrdinalIgnoreCase));
             }
+            if (!string.IsNullOrEmpty(_ageRatingFilter) && _ageRatingFilter != "ALL")
+            {
+                filter = filter.Where(m => m.Age.Equals(_ageRatingFilter, StringComparison.OrdinalIgnoreCase));
+            }
             FilteredMoviesCount = filter.Count();
             return filter;
+        }
+
+        public bool GoBackInHistory()
+        {
+            if (_historyStack.Count == 0) return false;
+            var item = _historyStack.Pop();
+            FilteredMovies = item.FilteredMovies;
+            PropertyChanged?.Invoke(this, new(nameof(FilteredMovies)));
+            SelectedMovie = item.SelectedMovie;
+            return (_historyStack.Count != 0);
         }
 
         public void ScrollMovies()
@@ -218,11 +261,24 @@ namespace XtreamIPTV.ViewModels
         {
             if (_selectedMovie == null) return;
             var movie = _selectedMovie;
-            //if (!string.IsNullOrEmpty(_selectedMovie.Backdrop)) return;
-            if (!string.IsNullOrEmpty(movie.ReleaseInfo) && !movie.ReleaseInfo.EndsWith(" * ")) return;
-
+            Directory.GetFiles("E:\\Movies", $"{movie.Id}.*.*").ToList().ForEach(f =>
+            {
+                if (!movie.Title.EndsWith("(Cached)"))
+                {
+                    movie.Title = movie.Title + " (Cached)";
+                    PropertyChanged?.Invoke(this, new(nameof(SelectedMovie)));
+                }
+            });
+            if (movie.RetrievedDetails) return;
+            //if (!string.IsNullOrEmpty(movie.ReleaseInfo) && !movie.ReleaseInfo.EndsWith(" * ") && movie.Rating > 0) return;
 
             movie = await _xtream.GetMovieDetailAsync(movie);
+            movie.RetrievedDetails = true;
+            Directory.GetFiles("E:\\Movies", $"{movie.Id}.*.*").ToList().ForEach(f =>
+            {
+                if (!movie.Title.EndsWith("(Cached)"))
+                    movie.Title = movie.Title + " (Cached)";
+            });
             if (SelectedMovie?.Id == movie.Id)
                 PropertyChanged?.Invoke(this, new(nameof(SelectedMovie)));
         }
@@ -247,6 +303,8 @@ namespace XtreamIPTV.ViewModels
         {
             if (SelectedMovie == null) return;
 
+            _historyStack.Push(new MovieHistoryItem { SelectedMovie = SelectedMovie, FilteredMovies = new ObservableCollection<Movie>(FilteredMovies) });
+
             var movie = (Movie)SelectedMovie?.Clone();
             FilteredMovies.Clear();
             PropertyChanged?.Invoke(this, new(nameof(FilteredMovies)));
@@ -260,6 +318,8 @@ namespace XtreamIPTV.ViewModels
         {
             if (string.IsNullOrEmpty(director)) return;
 
+            _historyStack.Push(new MovieHistoryItem { SelectedMovie = SelectedMovie, FilteredMovies = new ObservableCollection<Movie>(FilteredMovies) });
+
             FilteredMovies = new ObservableCollection<Movie>(AllMovies.Where(x => x.Directors.Any(d => d.Text.Equals(director, StringComparison.OrdinalIgnoreCase))).OrderByDescending(m => m.ReleaseDate));
             PropertyChanged?.Invoke(this, new(nameof(FilteredMovies)));
             FilteredMoviesCount = FilteredMovies.Count();
@@ -269,9 +329,20 @@ namespace XtreamIPTV.ViewModels
         {
             if (string.IsNullOrEmpty(actor)) return;
 
+            _historyStack.Push(new MovieHistoryItem { SelectedMovie = SelectedMovie, FilteredMovies = new ObservableCollection<Movie>(FilteredMovies) });
+
             FilteredMovies = new ObservableCollection<Movie>(AllMovies.Where(x => x.Actors.Any(a => a.Text.Equals(actor, StringComparison.OrdinalIgnoreCase))).OrderByDescending(m => m.ReleaseDate));
             PropertyChanged?.Invoke(this, new(nameof(FilteredMovies)));
             FilteredMoviesCount = FilteredMovies.Count();
+        }
+
+        internal async void GetMovieDetails(int movieId)
+        {
+            var movie = AllMovies.FirstOrDefault(m => m.Id == movieId);
+            if (movie?.RetrievedDetails == true) return;
+            movie ??= new Movie() { Id= movieId };
+            movie = await _xtream.GetMovieDetailAsync(movie);
+            SelectedMovie = movie;
         }
     }
 }

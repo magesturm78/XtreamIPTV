@@ -84,6 +84,29 @@ namespace XtreamIPTV.Views
                     await vm.LoadMovieCategoriesAsync();
                     await vm.LoadMoviesAsync();
 
+                    if (AgePanel.Children.Count == 0)
+                    {
+                        foreach (var d in vm.AgeRatings)
+                        {
+                            Button btn = new() { Content = d, FontSize = 20 };
+                            btn.Click += delegate
+                            {
+                                var scrollViewer = GetScrollViewer(MoviesListBox);
+                                scrollViewer?.ScrollToTop();
+                                AgeTogglePopupButton.IsChecked = false;
+                                foreach (var child in AgePanel.Children)
+                                {
+                                    if (child is not Button cbtn) continue;
+                                    cbtn.FontWeight = FontWeights.Normal;
+                                }
+                                btn.FontWeight = FontWeights.Bold;
+                                if (DataContext is not MoviesViewModel vm) return;
+                                vm.AgeRatingFilter = d == "ALL" ? string.Empty : d;
+                                BackButton.Visibility = Visibility.Hidden;
+                            };
+                            AgePanel.Children.Add(btn);
+                        }
+                    }
                     foreach (var child in SortPanel.Children)
                     {
                         if (child is not Button cbtn) continue;
@@ -309,9 +332,12 @@ namespace XtreamIPTV.Views
         {
             var scrollViewer = GetScrollViewer(MoviesListBox);
             scrollViewer?.ScrollToTop();
-            if (DataContext is not MoviesViewModel movievm) return;
-            movievm.Sort = movievm.Sort;
             scrollTime = DateTime.Now;
+            if (DataContext is not MoviesViewModel movievm) return;
+
+            if (movievm.GoBackInHistory()) 
+                return;
+            movievm.Sort = movievm.Sort;
             BackButton.Visibility = Visibility.Hidden;
         }
 

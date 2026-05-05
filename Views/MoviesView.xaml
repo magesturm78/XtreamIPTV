@@ -139,6 +139,17 @@
                         <StackPanel x:Name="LanguagePanel"/>
                     </Border>
                 </Popup>
+                <ToggleButton x:Name="AgeTogglePopupButton" Content="Age Rating" Margin="5,0,0,0" FontSize="15" />
+
+                <Popup IsOpen="{Binding IsChecked, ElementName=AgeTogglePopupButton}"
+                               PlacementTarget="{Binding ElementName=AgeTogglePopupButton}"
+                               Placement="Bottom"
+                               AllowsTransparency="True" 
+                               StaysOpen="False">
+                    <Border BorderThickness="1" Background="LightBlue" Padding="0">
+                        <StackPanel x:Name="AgePanel"/>
+                    </Border>
+                </Popup>
             </StackPanel>
         </Canvas>
         <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Bottom" HorizontalAlignment="Right" >

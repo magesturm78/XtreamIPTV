@@ -439,7 +439,7 @@ namespace XtreamIPTV.Services
                         if (DateTime.Now - lastWrite < TimeSpan.FromHours(8))
                         {
                             Debug.WriteLine($"Using cached data for action {action}");
-                            return await File.ReadAllTextAsync(filename, cancellationToken);
+                            //return await File.ReadAllTextAsync(filename, cancellationToken);
                         }
                     }
                 }
@@ -748,8 +748,8 @@ namespace XtreamIPTV.Services
                 OriginalLanguage = langMap.Any(l => l.Value == o_lang) ? langMap.Where(l => l.Value == o_lang).FirstOrDefault().Key : langs.Count() > 0 ? langs[0] : string.Empty,
                 //ReleaseInfo = $"{release_date} * {age}{genre}{runtime}",
                 Rating = double.TryParse(rating, out var rat) ? rat : 0.0,
-                CastInfo = $"Cast: {string.Join(", ", cast)}",
-                DirectorInfo = $"Director: {string.Join(", ", director)}",
+                Cast = cast,
+                Directors = director,
             };
             return series;
         }

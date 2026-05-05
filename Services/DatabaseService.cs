@@ -15,6 +15,7 @@ using System.Text;
 using System.Text.Json;
 using System.Threading.Tasks;
 using System.Windows.Controls;
+using System.Windows.Documents;
 using System.Windows.Input;
 using XtreamIPTV.Models;
 using static Microsoft.EntityFrameworkCore.DbLoggerCategory;
@@ -24,6 +25,7 @@ namespace XtreamIPTV.Services
 {
     public class DatabaseService : IIPTVService
     {
+        const int MAX_PAGES = 20;
         private static readonly string connectionString = "Data Source=D:\\tv_data\\database.db;";
         private readonly HttpClient _http = new();
         private HttpClient? _tmdbclient = null;
@@ -105,21 +107,33 @@ namespace XtreamIPTV.Services
             var cast = info.GetProperty("cast").GetString() ?? "";
             var director = info.GetProperty("director").GetString() ?? "";
             var plot = info.GetProperty("plot").GetString() ?? "";
+            var rating = info.GetProperty("rating").GetString() ?? "";
+            var duration = info.GetProperty("duration").GetString() ?? "";
 
             if (info.TryGetProperty("releasedate", out var rd) && rd.ValueKind == JsonValueKind.String)
             {
                 genre = $"{rd.GetString()} * {genre}";
             }
 
-            if (!string.IsNullOrWhiteSpace(backdrop))
+            if (!string.IsNullOrEmpty(duration))
+                genre += $" * {duration}";
+
+            if (!string.IsNullOrWhiteSpace(backdrop) && backdrop.StartsWith("https://image.tmdb.org/t/p/original"))
+                backdrop = backdrop.Replace("https://image.tmdb.org/t/p/original", "https://image.tmdb.org/t/p/w780");
+
+            if (!string.IsNullOrWhiteSpace(backdrop) && backdrop != movie.Backdrop)
                 movie.Backdrop = backdrop;
 
-            movie.ReleaseInfo = genre;
+            if (!string.IsNullOrWhiteSpace(genre) && genre != movie.ReleaseInfo)
+                movie.ReleaseInfo = genre;
             if (!string.IsNullOrEmpty(cast))
                 movie.Actors = cast.Split(',').Select(a => new LinkItem { Text = a.Trim(), Url = $"Actor:{a.Trim()}" }).ToList();
             if (!string.IsNullOrEmpty(director))
                 movie.Directors = director.Split(',').Select(d => new LinkItem { Text = d.Trim(), Url = $"Director:{d.Trim()}" }).ToList();
-            movie.Plot = plot;
+            if (double.TryParse(rating, out var ratingd))
+                movie.Rating = ratingd;
+            if (plot != movie.Plot)
+                movie.Plot = plot;
             return movie;
         }
 
@@ -138,16 +152,17 @@ namespace XtreamIPTV.Services
         {
             using var connection = new SqliteConnection(connectionString);
             connection.Open();
-            string query = "SELECT movies.tmdb_id, json(data), json(credits) " +
+            string query = "SELECT movies.tmdb_id, json(data), json(credits), updated " +
                             //", similiar " +
                             "FROM movies " +
                            //$"left outer join similiar_movies on movies.tmdb_id = similiar_movies.tmdb_id " +
                             "WHERE 1=1 " +
-                           //$"  AND release_date < '{DateTime.Now:yyyy-MM-dd}' " +
+                            //$"  AND release_date < '{DateTime.Now:yyyy-MM-dd}' " +
                             //"  AND poster_path is not null " +
                             //"  AND (CAST(data->'$.runtime' as integer) > 20 or " +
                             //"       CAST(data->'$.runtime' as integer) = 0 or " +
                             //"       data->'$.runtime' is null) " +
+                            //"    AND data->>'$.adult' = 1 " +
                             "order by popularity desc, release_date desc " +
                             //"LIMIT 10000" +
                             "";
@@ -161,12 +176,17 @@ namespace XtreamIPTV.Services
                 string data = reader.GetString(1);
                 string credits = !reader.IsDBNull(2) ? reader.GetString(2) : string.Empty;
                 //string similiar = !reader.IsDBNull(3) ? reader.GetString(3) : string.Empty;
+                var updated = !reader.IsDBNull(3) ? reader.GetDateTime(3) : (DateTime?)null;
                 // Process the data as needed
                 var movie = CreateMovieFromJSON(id, data, credits);
                 if (movie != null)
                 {
                     //if (!string.IsNullOrEmpty(similiar))
                     //    movie.Similiar = similiar.Split(',').Select(s => int.TryParse(s, out var smid) ? smid : 0).Where(smid => smid > 0).ToList();
+                    if (DateTime.Now.Subtract(updated ?? DateTime.Now).TotalDays < 30 && movie.Age != "Adult")
+                    {
+                        movie.RetrievedDetails = true;
+                    }
                     list.Add(movie);
                 }
             }
@@ -212,7 +232,7 @@ namespace XtreamIPTV.Services
 
             query += "order by popularity desc, release_date desc ";
 
-            string selectQuery = $"SELECT movies.tmdb_id, json(data), json(credits) {query} LIMIT {count}";
+            string selectQuery = $"SELECT movies.tmdb_id, json(data), json(credits), updated {query} LIMIT {count}";
             string countQuery = $"SELECT count(movies.tmdb_id) {query}";
 
             using var countCommand = new SqliteCommand(countQuery, connection);
@@ -230,6 +250,7 @@ namespace XtreamIPTV.Services
                 int id = reader.GetInt32(0);
                 string data = reader.GetString(1);
                 string credits = !reader.IsDBNull(2) ? reader.GetString(2) : string.Empty;
+                var updated = !reader.IsDBNull(3) ? reader.GetDateTime(3) : (DateTime?)null;
                 // Process the data as needed
                 var movie = CreateMovieFromJSON(id, data, credits);
                 if (movie != null)
@@ -238,7 +259,7 @@ namespace XtreamIPTV.Services
                     {
                         Debug.Print($"here cat {movie.CategoryId} - {categoryId}");
                         CreateMovieFromJSON(id, data, credits);
-                            }
+                    }
                     list.Add(movie);
                 }
                 else
@@ -259,6 +280,7 @@ namespace XtreamIPTV.Services
             string overview = obj1.TryGetProperty("overview", out JsonElement o) ? o.ToString() : "";
             string rating = obj1.TryGetProperty("vote_average", out JsonElement va) ? va.ToString() : "0";
             string o_lang = obj1.TryGetProperty("original_language", out JsonElement ol) ? ol.ToString() : "";
+            string adult = obj1.TryGetProperty("adult", out JsonElement ad) ? ad.ToString() : "";
             string similiar = string.Empty;
             var categoryId = 0;
 
@@ -268,7 +290,8 @@ namespace XtreamIPTV.Services
             if (string.IsNullOrEmpty(poster) || string.IsNullOrEmpty(release_date))
                 return null;
 
-            string age = "";
+            string age = string.Empty;
+            string ageDisp = string.Empty;
             if (obj1.TryGetProperty("releases", out JsonElement releases))
             {
                 foreach (var country in (releases.TryGetProperty("countries", out JsonElement x) ? x : default).EnumerateArray())
@@ -277,6 +300,7 @@ namespace XtreamIPTV.Services
                         !string.IsNullOrEmpty(country.GetProperty("certification").ToString()))
                     {
                         age = $"({country.GetProperty("certification")}) ";
+                        ageDisp = country.GetProperty("certification").ToString().Trim();
                         break;
                     }
                 }
@@ -286,7 +310,8 @@ namespace XtreamIPTV.Services
                     {
                         if (!string.IsNullOrEmpty(country.GetProperty("certification").ToString()))
                         {
-                            age = $"({country.GetProperty("certification")}) * ";
+                            age = $"({country.GetProperty("certification")}) ";
+                            ageDisp = country.GetProperty("certification").ToString().Trim();
                             break;
                         }
                     }
@@ -360,11 +385,17 @@ namespace XtreamIPTV.Services
             ticks += releaseDate.Month * 1000;
             ticks += releaseDate.Day;
 
+            if (adult == "True")
+            {
+                //title = $"{title} (ADULT)";
+                ageDisp = "Adult";
+            }
             return new Movie
             {
                 Id = id,
                 NavigaionUrl = "https://www.themoviedb.org/movie/" + id,
                 Title = $"{title} ({release_date[..4]})",
+                Age = ageDisp.Trim(),
                 ReleaseDate = releaseDate,
                 Backdrop = backdrop,
                 Poster = poster,
@@ -518,6 +549,7 @@ namespace XtreamIPTV.Services
 
             using var connection = new SqliteConnection(connectionString);
             connection.Open();
+            //movie.Similiar.Clear();
             if (movie.Similiar.Count == 0)
             {
                 string query1 = "SELECT similiar " +
@@ -541,34 +573,44 @@ namespace XtreamIPTV.Services
                         _tmdbclient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", ConfigurationManager.AppSettings["Bearer"]);
                         _tmdbclient.DefaultRequestHeaders.Add("accept", "application/json");
                     }
-
-                    List<string> urls = [$"https://api.themoviedb.org/3/movie/{movie.Id}/recommendations",
-                                             $"https://api.themoviedb.org/3/movie/{movie.Id}/similar"];
+                    List<string> urls = [$"https://api.themoviedb.org/3/movie/{movie.Id}/similar",
+                                         $"https://api.themoviedb.org/3/movie/{movie.Id}/recommendations"];
                     foreach (string url in urls)
                     {
+                        //if no similiar use recommendations to get more results
+                        if (movie.Similiar.Count > 0)
+                            break;
                         try
                         {
-                            var json = await _tmdbclient.GetStringAsync(url);
-                            var data = JsonSerializer.Deserialize<JsonElement>(json);
-                            if (data.TryGetProperty("results", out JsonElement results))
-                                foreach (var id in results.EnumerateArray())
-                                {
-                                    if (id.TryGetProperty("id", out var mid))
+                            int total_pages = MAX_PAGES;
+                            int page = 1;
+                            while (page < total_pages)
+                            {
+                                var json = await _tmdbclient.GetStringAsync($"{url}?page={page}");
+                                var data = JsonSerializer.Deserialize<JsonElement>(json);
+                                total_pages = data.GetProperty("total_pages").GetInt32();
+                                if (total_pages > MAX_PAGES) total_pages = MAX_PAGES; 
+                                if (data.TryGetProperty("results", out JsonElement results))
+                                    foreach (var id in results.EnumerateArray())
                                     {
-                                        try
+                                        if (id.TryGetProperty("id", out var mid))
                                         {
-                                            //Add movie if not found in database to avoid multiple calls to tmdb for the same movie
-                                            if (!allMovies.Any(m => m.Id == mid.GetInt32()))
-                                                _ = await _http.GetStringAsync(BuildUrl("get_vod_info", $"vod_id={mid}"));
-                                            if (!movie.Similiar.Contains(mid.GetInt32()))
-                                                movie.Similiar.Add(mid.GetInt32());
-                                        }
-                                        catch (Exception ex)
-                                        {
-                                            Debug.Print($"Error fetching movie info for ID {mid}: {ex.Message}");
+                                            try
+                                            {
+                                                //Add movie if not found in database to avoid multiple calls to tmdb for the same movie
+                                                if (!allMovies.Any(m => m.Id == mid.GetInt32()))
+                                                    _ = await _http.GetStringAsync(BuildUrl("get_vod_info", $"vod_id={mid}"));
+                                                if (!movie.Similiar.Contains(mid.GetInt32()))
+                                                    movie.Similiar.Add(mid.GetInt32());
+                                            }
+                                            catch (Exception ex)
+                                            {
+                                                Debug.Print($"Error fetching movie info for ID {mid}: {ex.Message}");
+                                            }
                                         }
                                     }
-                                }
+                                    page++;
+                            }
                         }
                         catch (Exception ex)
                         {
@@ -649,32 +691,40 @@ namespace XtreamIPTV.Services
                         _tmdbclient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", ConfigurationManager.AppSettings["Bearer"]);
                         _tmdbclient.DefaultRequestHeaders.Add("accept", "application/json");
                     }
-                    List<string> urls = [$"https://api.themoviedb.org/3/tv/{series.Id}/recommendations",
+                    int total_pages = MAX_PAGES;
+                    List<string> urls = [//$"https://api.themoviedb.org/3/tv/{series.Id}/recommendations",
                                              $"https://api.themoviedb.org/3/tv/{series.Id}/similar"];
                     foreach (string url in urls)
                     {
                         try
                         {
-                            var json = await _tmdbclient.GetStringAsync(url);
-                            var data = JsonSerializer.Deserialize<JsonElement>(json);
-                            if (data.TryGetProperty("results", out JsonElement results))
-                                foreach (var id in results.EnumerateArray())
-                                {
-                                    if (id.TryGetProperty("id", out var mid))
+                            int page = 1;
+                            while (page < total_pages)
+                            {
+                                var json = await _tmdbclient.GetStringAsync($"{url}?page={page}");
+                                var data = JsonSerializer.Deserialize<JsonElement>(json);
+                                total_pages = data.GetProperty("total_pages").GetInt32();
+                                if (total_pages > MAX_PAGES) total_pages = MAX_PAGES;
+                                if (data.TryGetProperty("results", out JsonElement results))
+                                    foreach (var id in results.EnumerateArray())
                                     {
-                                        try
+                                        if (id.TryGetProperty("id", out var mid))
                                         {
-                                            if (!allSeries.Any(s => s.Id == mid.GetInt32()))
-                                                _ = await _http.GetStringAsync(BuildUrl("get_series_info", $"series_id={mid}"));
-                                            if (!series.Similiar.Contains(mid.GetInt32()))
-                                                series.Similiar.Add(mid.GetInt32());
-                                        }
-                                        catch (Exception ex)
-                                        {
-                                            Debug.Print($"Error fetching series info for ID {mid}: {ex.Message}");
+                                            try
+                                            {
+                                                if (!allSeries.Any(s => s.Id == mid.GetInt32()))
+                                                    _ = await _http.GetStringAsync(BuildUrl("get_series_info", $"series_id={mid}"));
+                                                if (!series.Similiar.Contains(mid.GetInt32()))
+                                                    series.Similiar.Add(mid.GetInt32());
+                                            }
+                                            catch (Exception ex)
+                                            {
+                                                Debug.Print($"Error fetching series info for ID {mid}: {ex.Message}");
+                                            }
                                         }
                                     }
-                                }
+                                page++;
+                            }
                         }
                         catch (Exception ex)
                         {
@@ -861,8 +911,8 @@ namespace XtreamIPTV.Services
                 OriginalLanguage = langMap.Any(l => l.Value == o_lang) ? langMap.Where(l => l.Value == o_lang).FirstOrDefault().Key : langs.Count() > 0 ? langs[0] : string.Empty,
                 //ReleaseInfo = $"{release_date} * {age}{genre}{runtime}",
                 Rating = double.TryParse(rating, out var rat) ? rat : 0.0,
-                CastInfo = $"Cast: {string.Join(", ", cast)}",
-                DirectorInfo = $"Director: {string.Join(", ", director)}",
+                Cast = cast,
+                Directors = director,
             };
             return series;
         }

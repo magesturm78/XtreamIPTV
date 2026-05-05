@@ -28,6 +28,8 @@ namespace XtreamIPTV.Models
         public long Added { get; set; } = 0;
         public string StreamUrl { get; set; } = string.Empty;
         public DateTime ReleaseDate { get; set; }
+        public string Age { get; set; } = string.Empty;
+        public bool RetrievedDetails { get; set; } = false;
 
         public object Clone()
         {
