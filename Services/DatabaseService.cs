@@ -183,9 +183,12 @@ namespace XtreamIPTV.Services
                 {
                     //if (!string.IsNullOrEmpty(similiar))
                     //    movie.Similiar = similiar.Split(',').Select(s => int.TryParse(s, out var smid) ? smid : 0).Where(smid => smid > 0).ToList();
-                    if (DateTime.Now.Subtract(updated ?? DateTime.Now).TotalDays < 30 && movie.Age != "Adult")
+                    if (DateTime.Now.Subtract(updated ?? DateTime.Now).TotalDays < 30 && DateTime.Now.Subtract(movie.ReleaseDate).TotalDays > 60)
                     {
-                        movie.RetrievedDetails = true;
+                        if (!string.IsNullOrEmpty(movie.ReleaseInfo) && !movie.ReleaseInfo.EndsWith(" * "))
+                            movie.RetrievedDetails = true;
+                         //else
+                         //   Debug.Print($"here {movie.Title} - {movie.ReleaseInfo} - {movie.Rating}");
                     }
                     list.Add(movie);
                 }
@@ -193,6 +196,48 @@ namespace XtreamIPTV.Services
             reader.Close();
             connection.Close();
             return list;
+        }
+
+        public async Task<Movie> LoadMovieFromDB(int movieId)
+        {
+            using var connection = new SqliteConnection(connectionString);
+            connection.Open();
+            string query = "SELECT movies.tmdb_id, json(data), json(credits), updated " +
+                            "FROM movies " +
+                            $"WHERE tmdb_id = {movieId}" +
+                            "";
+            using var command = new SqliteCommand(query, connection);
+            var reader = command.ExecuteReader();
+
+            var list = new List<Movie>();
+            try
+            {
+                while (reader.Read())
+                {
+                    int id = reader.GetInt32(0);
+                    string data = reader.GetString(1);
+                    string credits = !reader.IsDBNull(2) ? reader.GetString(2) : string.Empty;
+                    //string similiar = !reader.IsDBNull(3) ? reader.GetString(3) : string.Empty;
+                    var updated = !reader.IsDBNull(3) ? reader.GetDateTime(3) : (DateTime?)null;
+                    // Process the data as needed
+                    var movie = CreateMovieFromJSON(id, data, credits);
+                    if (movie != null)
+                    {
+                        if (DateTime.Now.Subtract(updated ?? DateTime.Now).TotalDays < 30)
+                        {
+                            if (!string.IsNullOrEmpty(movie.ReleaseInfo) && !movie.ReleaseInfo.EndsWith(" * "))
+                                movie.RetrievedDetails = true;
+                        }
+                        return movie;
+                    }
+                }
+            }
+            finally
+            {
+                reader.Close();
+                connection.Close();
+            }
+            return null;
         }
 
         public async Task<IEnumerable<Movie>> GetMoviesAsync(int categoryId, int decade, string language, int count)
@@ -286,7 +331,6 @@ namespace XtreamIPTV.Services
 
             List<string> cast = [];
             List<string> director = [];
-
             if (string.IsNullOrEmpty(poster) || string.IsNullOrEmpty(release_date))
                 return null;
 
@@ -368,8 +412,16 @@ namespace XtreamIPTV.Services
                     if (objCredits.TryGetProperty("cast", out JsonElement ocast))
                         foreach (var c in ocast.EnumerateArray())
                         {
-                            if (c.GetProperty("known_for_department").ToString() == "Acting")
+                            try
+                            {
+                                if (c.GetProperty("known_for_department").ToString() == "Acting")
+                                    cast.Add(c.GetProperty("name").ToString());
+                            }
+                            catch
+                            {
                                 cast.Add(c.GetProperty("name").ToString());
+                                //Debug.Print("here");
+                            }
                         }
                     if (objCredits.TryGetProperty("crew", out JsonElement ocrew))
                         foreach (var c in ocrew.EnumerateArray())
@@ -387,7 +439,6 @@ namespace XtreamIPTV.Services
 
             if (adult == "True")
             {
-                //title = $"{title} (ADULT)";
                 ageDisp = "Adult";
             }
             return new Movie
@@ -454,9 +505,12 @@ namespace XtreamIPTV.Services
                         var id = ep.GetProperty("id").GetInt32();
                         var info = ep.GetProperty("info");
                         var cover_big = info.TryGetProperty("cover_big", out var cb) ? cb.GetString() ?? null : null;
-                        //if (cover_big != null)
-                        //    cover_big = cover_big.Replace("/original/", "/w200/");
+                        if (string.IsNullOrEmpty(cover_big))
+                            cover_big = series.Backdrop;
+                        else
+                            cover_big = cover_big.Replace("/original/", "/w200/");
                         var plot = info.TryGetProperty("plot", out var p) ? p.GetString() ?? "" : "";
+                        var releasedate = info.TryGetProperty("releasedate", out var rd) ? rd.GetString() ?? "" : "";
                         var url = $"{_baseUrl}/series/{_username}/{_password}/{id}.mp4";
 
                         if (string.IsNullOrEmpty(cover_big))
@@ -475,7 +529,8 @@ namespace XtreamIPTV.Services
                             //StreamUrl = url,
                             Poster = cover_big,
                             Plot = plot,
-                            EpisodeId = id
+                            EpisodeId = id,
+                            ReleaseDate = releasedate,
                         });
                     }
                 }
@@ -783,6 +838,7 @@ namespace XtreamIPTV.Services
             string overview = obj1.TryGetProperty("overview", out JsonElement o) ? o.ToString() : "";
             string rating = obj1.TryGetProperty("vote_average", out JsonElement va) ? va.ToString() : "0";
             string o_lang = obj1.TryGetProperty("original_language", out JsonElement ol) ? ol.ToString() : "";
+            string adult = obj1.TryGetProperty("adult", out JsonElement ad) ? ad.ToString() : "";
             string similiar = string.Empty;
             var categoryId = 0;
 
@@ -845,6 +901,7 @@ namespace XtreamIPTV.Services
             }
 
             string age = "";
+            string ageDisp = "";
             if (obj1.TryGetProperty("content_ratings", out JsonElement releases))
             {
                 foreach (var country in (releases.TryGetProperty("results", out JsonElement x) ? x : default).EnumerateArray())
@@ -853,6 +910,7 @@ namespace XtreamIPTV.Services
                         !string.IsNullOrEmpty(country.GetProperty("rating").ToString()))
                     {
                         age = $"({country.GetProperty("rating")}) ";
+                        ageDisp = country.GetProperty("rating").ToString();
                         break;
                     }
                 }
@@ -863,6 +921,7 @@ namespace XtreamIPTV.Services
                         if (!string.IsNullOrEmpty(country.GetProperty("rating").ToString()))
                         {
                             age = $"({country.GetProperty("rating")}) * ";
+                            ageDisp = country.GetProperty("rating").ToString();
                             break;
                         }
                     }
@@ -897,6 +956,12 @@ namespace XtreamIPTV.Services
             if (release_date[..4] != last_air_date[..4])
                 serTitle += $" - {last_air_date[..4]}";
             serTitle += ")";
+
+            if (adult == "True")
+            {
+                ageDisp = "Adult";
+            }
+
             var series = new Series
             {
                 Id = id,
@@ -911,8 +976,9 @@ namespace XtreamIPTV.Services
                 OriginalLanguage = langMap.Any(l => l.Value == o_lang) ? langMap.Where(l => l.Value == o_lang).FirstOrDefault().Key : langs.Count() > 0 ? langs[0] : string.Empty,
                 //ReleaseInfo = $"{release_date} * {age}{genre}{runtime}",
                 Rating = double.TryParse(rating, out var rat) ? rat : 0.0,
-                Cast = cast,
-                Directors = director,
+                Actors = cast.Select(a => new LinkItem { Text = a.Trim(), Url = $"Actor:{a.Trim()}" }).ToList(),
+                Directors = director.Select(d => new LinkItem { Text = d.Trim(), Url = $"Director:{d.Trim()}" }).ToList(),
+                Age = ageDisp.Trim(),
             };
             return series;
         }

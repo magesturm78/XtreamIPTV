@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.ComponentModel;
+using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
 using XtreamIPTV.Models;
@@ -10,6 +11,12 @@ using static XtreamIPTV.ViewModels.MoviesViewModel;
 
 namespace XtreamIPTV.ViewModels
 {
+    public struct SeriesHistoryItem
+    {
+        public Series SelectedSeries;
+        public ObservableCollection<Series> FilteredSeries;
+    }
+
     public class SeriesViewModel : INotifyPropertyChanged
     {
         const int ROW_SIZE = 10;
@@ -18,6 +25,7 @@ namespace XtreamIPTV.ViewModels
         private readonly IIPTVService _xtream;
         private readonly FavoritesService _favorites;
         private readonly SeriesEpisodeService _seriesEpisode;
+        private readonly Stack<SeriesHistoryItem> _historyStack = new Stack<SeriesHistoryItem>();
 
         public ObservableCollection<Series> AllSeries { get; set; } = new();
 
@@ -26,6 +34,8 @@ namespace XtreamIPTV.ViewModels
         public ObservableCollection<Series> SearchedSeries { get; set; } = new();
 
         public ObservableCollection<Category> Categories { get; set; } = new();
+
+        public ObservableCollection<String> AgeRatings { get; set; } = new();
 
         private int _count = 0;
         public int FilteredSeriesCount
@@ -135,6 +145,22 @@ namespace XtreamIPTV.ViewModels
             }
         }
 
+        private string _ageRatingFilter = string.Empty;
+        public string AgeRatingFilter
+        {
+            get
+            {
+                return _languageFilter;
+            }
+            set
+            {
+                _ageRatingFilter = value;
+                ApplyFilters();
+                PropertyChanged?.Invoke(this, new(nameof(AgeRatingFilter)));
+                PropertyChanged?.Invoke(this, new(nameof(FilteredSeries)));
+            }
+        }
+
         public SeriesViewModel(IIPTVService xtream, FavoritesService favorites, SeriesEpisodeService seriesEpisode)
         {
             _xtream = xtream;
@@ -183,6 +209,10 @@ namespace XtreamIPTV.ViewModels
             {
                 filter = filter.Where(m => m.OriginalLanguage.Equals(_languageFilter, StringComparison.OrdinalIgnoreCase));
             }
+            if (!string.IsNullOrEmpty(_ageRatingFilter) && _ageRatingFilter != "ALL")
+            {
+                filter = filter.Where(m => m.Age.Equals(_ageRatingFilter, StringComparison.OrdinalIgnoreCase));
+            }
             FilteredSeriesCount = filter.Count();
             return filter;
         }
@@ -192,6 +222,7 @@ namespace XtreamIPTV.ViewModels
             if (AllSeries.Count > 0) return;
             AllSeries.Clear();
             var list = await _xtream.GetSeriesAsync();
+            AgeRatings = new ObservableCollection<string>(["ALL",  "TV-MA", "M", "MA-15+", "18", "18+", "R18", "19", "X", "VM18", "K18", "C", "D", "A", "R21", "NR", "Adult"]);
             foreach (var s in list)
                 AllSeries.Add(s);
             ApplyFilters();
@@ -289,6 +320,7 @@ namespace XtreamIPTV.ViewModels
         internal async void GetSimiliarSeries()
         {
             if (SelectedSeries == null) return;
+            _historyStack.Push(new SeriesHistoryItem { SelectedSeries = SelectedSeries, FilteredSeries = new ObservableCollection<Series>(FilteredSeries) });
             var series = AllSeries.FirstOrDefault(s => s.Id == SelectedSeries.Id);
             if (series == null) return;
 
@@ -300,5 +332,35 @@ namespace XtreamIPTV.ViewModels
             FilteredSeriesCount = FilteredSeries.Count();
         }
 
+        internal void GetSeriesByActor(string actor)
+        {
+            if (string.IsNullOrEmpty(actor)) return;
+
+            _historyStack.Push(new SeriesHistoryItem { SelectedSeries = SelectedSeries, FilteredSeries = new ObservableCollection<Series>(FilteredSeries) });
+
+            FilteredSeries = new ObservableCollection<Series>(AllSeries.Where(x => x.Actors.Any(a => a.Text.Equals(actor, StringComparison.OrdinalIgnoreCase))).OrderByDescending(m => m.ReleaseDate));
+            PropertyChanged?.Invoke(this, new(nameof(FilteredSeries)));
+            FilteredSeriesCount = FilteredSeries.Count();
+        }
+
+        internal void GetSeriesByDirector(string director)
+        {
+            if (string.IsNullOrEmpty(director)) return;
+
+            _historyStack.Push(new SeriesHistoryItem { SelectedSeries = SelectedSeries, FilteredSeries = new ObservableCollection<Series>(FilteredSeries) });
+
+            FilteredSeries = new ObservableCollection<Series>(AllSeries.Where(x => x.Directors.Any(d => d.Text.Equals(director, StringComparison.OrdinalIgnoreCase))).OrderByDescending(m => m.ReleaseDate));
+            PropertyChanged?.Invoke(this, new(nameof(FilteredSeries)));
+            FilteredSeriesCount = FilteredSeries.Count();
+        }
+        public bool GoBackInHistory()
+        {
+            if (_historyStack.Count == 0) return false;
+            var item = _historyStack.Pop();
+            FilteredSeries = item.FilteredSeries;
+            PropertyChanged?.Invoke(this, new(nameof(FilteredSeries)));
+            SelectedSeries = item.SelectedSeries;
+            return (_historyStack.Count != 0);
+        }
     }
 }

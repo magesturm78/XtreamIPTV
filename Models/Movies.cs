@@ -1,5 +1,8 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.IO;
+using System.Linq;
+using System.Windows.Input;
 
 namespace XtreamIPTV.Models
 {
@@ -30,6 +33,20 @@ namespace XtreamIPTV.Models
         public DateTime ReleaseDate { get; set; }
         public string Age { get; set; } = string.Empty;
         public bool RetrievedDetails { get; set; } = false;
+
+        public string FileName 
+        { 
+            get
+            {
+                char[] invalidChars = Path.GetInvalidFileNameChars();
+
+                string safeName = invalidChars.Aggregate(Title, (current, c) => current.Replace(c, '_'));
+
+                // Optional: Trim trailing periods and spaces, which are invalid on Windows
+                safeName = safeName.TrimEnd('.', ' ');
+                return $"{Id}.{safeName}";
+            }
+        }
 
         public object Clone()
         {

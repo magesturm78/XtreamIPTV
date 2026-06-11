@@ -28,7 +28,7 @@
                  SelectedItem="{Binding SelectedCategory}"
                  SelectionChanged="ListBox_SelectionChanged"
                  DisplayMemberPath="Name" ScrollViewer.HorizontalScrollBarVisibility="Hidden"
-                 Height="{Binding ElementName=LayoutRoot, Path=ActualHeight}"/>
+                 Height="{Binding ElementName=LayoutRoot, Path=ActualHeight, TargetNullValue=100}"/>
 
         <!-- SERIES DETAILS -->
         <Canvas Grid.Row="0" Grid.Column="1" x:Name="MovieInfoCanvas" Height="390" >
@@ -36,10 +36,75 @@
             <StackPanel Width="800" HorizontalAlignment="Left" VerticalAlignment="Top" Canvas.Top="8" Canvas.Left="8">
                 <TextBlock Text="{Binding SelectedSeries.Title}" FontSize="25" FontWeight="Bold" TextWrapping="Wrap" Foreground="White" />
                 <TextBlock Text="{Binding SelectedSeries.ReleaseInfo}" FontSize="15" TextWrapping="Wrap" Foreground="White" Margin="0,5,0,0" />
-                <TextBlock Text="{Binding SelectedSeries.Plot}" FontSize="20" TextWrapping="Wrap" Foreground="White" Margin="0,5,0,0" />
-                <TextBlock x:Name="episodeTitle" Text="{Binding SelectedEpisode.Title}" FontSize="15" TextWrapping="Wrap" Foreground="White" Margin="0,5,0,0" />
-                <TextBlock x:Name="episodePlot" Text="{Binding SelectedEpisode.Plot}" FontSize="20" TextWrapping="Wrap" Foreground="White" Margin="0,5,0,0" />
             </StackPanel>
+            <ScrollViewer Height="250" Width="820" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled" Canvas.Top="70" Canvas.Left="8" HorizontalAlignment="Center" VerticalAlignment="Top">
+                <StackPanel Width="800" HorizontalAlignment="Left" VerticalAlignment="Top">
+                    <TextBlock Text="{Binding SelectedSeries.Plot}" FontSize="20" TextWrapping="Wrap" Foreground="White" Margin="0,5,0,0" />
+                    <WrapPanel Width="800" Orientation="Horizontal" Margin="0,10,0,0">
+                        <TextBlock Text="Directors:" FontSize="12" TextWrapping="Wrap" Foreground="White"/>
+                        <ItemsControl x:Name="DirectorsItemsControl" ItemsSource="{Binding SelectedSeries.Directors}">
+                            <ItemsControl.ItemsPanel>
+                                <ItemsPanelTemplate>
+                                    <WrapPanel Orientation="Horizontal"/>
+                                </ItemsPanelTemplate>
+                            </ItemsControl.ItemsPanel>
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate>
+                                    <TextBlock Margin="5,0,0,0">
+                                    <Hyperlink x:Name="DirectorHyperlink" NavigateUri="{Binding Url}" RequestNavigate="DirectorHyperlink_RequestNavigate">
+                                        <Run Text="{Binding Text}" FontSize="12" Foreground="White"/>
+                                    </Hyperlink>
+                                    </TextBlock>
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+                        <WrapPanel.Style>
+                            <Style TargetType="WrapPanel">
+                                <Setter Property="Visibility" Value="Visible"/>
+                                <Style.Triggers>
+                                    <!-- If Count is 0, hide the parent -->
+                                    <DataTrigger Binding="{Binding ElementName=DirectorsItemsControl, Path=Items.Count}" Value="0">
+                                        <Setter Property="Visibility" Value="Collapsed"/>
+                                    </DataTrigger>
+                                </Style.Triggers>
+                            </Style>
+                        </WrapPanel.Style>
+                    </WrapPanel>
+                    <WrapPanel x:Name="ActorsWrapPanel" Width="800" Orientation="Horizontal" Margin="0,10,0,0">
+                        <TextBlock Text="Actors:" FontSize="12" TextWrapping="Wrap" Foreground="White"/>
+                        <ItemsControl x:Name="ActorsItemsControl" ItemsSource="{Binding SelectedSeries.Actors}">
+                            <ItemsControl.ItemsPanel>
+                                <ItemsPanelTemplate>
+                                    <WrapPanel Orientation="Horizontal"/>
+                                </ItemsPanelTemplate>
+                            </ItemsControl.ItemsPanel>
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate>
+                                    <TextBlock Margin="5,0,0,0" >
+                                    <Hyperlink x:Name="ActorHyperlink" NavigateUri="{Binding Url}" RequestNavigate="ActorHyperlink_RequestNavigate">
+                                        <Run Text="{Binding Text}" FontSize="12" Foreground="White"/>
+                                    </Hyperlink>
+                                    </TextBlock>
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+                        <WrapPanel.Style>
+                            <Style TargetType="WrapPanel">
+                                <Setter Property="Visibility" Value="Visible"/>
+                                <Style.Triggers>
+                                    <!-- If Count is 0, hide the parent -->
+                                    <DataTrigger Binding="{Binding ElementName=ActorsItemsControl, Path=Items.Count}" Value="0">
+                                        <Setter Property="Visibility" Value="Collapsed"/>
+                                    </DataTrigger>
+                                </Style.Triggers>
+                            </Style>
+                        </WrapPanel.Style>
+                    </WrapPanel>
+                    <TextBlock x:Name="episodeTitle" Text="{Binding SelectedEpisode.Title}" FontSize="15" TextWrapping="Wrap" Foreground="White" Margin="0,5,0,0" />
+                    <TextBlock x:Name="episodeReleaseDate" Text="{Binding SelectedEpisode.ReleaseDate}" FontSize="12" TextWrapping="Wrap" Foreground="White" Margin="5,0,0,0" />
+                    <TextBlock x:Name="episodePlot" Text="{Binding SelectedEpisode.Plot}" FontSize="20" TextWrapping="Wrap" Foreground="White" Margin="0,0,0,0" />
+                </StackPanel>
+            </ScrollViewer>
             <!-- Series buttons -->
             <Button x:Name="EpisodesButton" Content="Episodes" Width="150" Height="50" VerticalAlignment="Bottom" HorizontalAlignment="Left" Margin="5" 
                 Background="LightBlue" FontWeight="Bold" FontSize="25" Canvas.Bottom="5" Canvas.Left="5" Click="EpisodesButton_Click" />
@@ -101,6 +166,17 @@
                     </Border>
                 </Popup>
 
+                <ToggleButton x:Name="AgeTogglePopupButton" Content="Age Rating" Margin="5,0,0,0" FontSize="15" />
+
+                <Popup IsOpen="{Binding IsChecked, ElementName=AgeTogglePopupButton}"
+                               PlacementTarget="{Binding ElementName=AgeTogglePopupButton}"
+                               Placement="Bottom"
+                               AllowsTransparency="True" 
+                               StaysOpen="False">
+                    <Border BorderThickness="1" Background="LightBlue" Padding="0">
+                        <StackPanel x:Name="AgePanel"/>
+                    </Border>
+                </Popup>
             </StackPanel>
         </Canvas>
         <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Bottom" HorizontalAlignment="Right">
@@ -124,7 +200,15 @@
                         <StackPanel Orientation="Vertical" VerticalAlignment="Top" Background="Transparent" >
                             <Canvas Height="230" Width="152">
                                 <Image Width="154" Source="{Binding Path=Poster, TargetNullValue={x:Null}}" VerticalAlignment="Top" />
-                                <TextBlock Canvas.Left="0" Canvas.Top="198" Text="{Binding Path=Rating}" FontSize="20" Background="#7F000000"/>
+                                <!--<TextBlock Canvas.Left="0" Canvas.Top="198" Text="{Binding Path=Rating}" FontSize="20" Background="#7F000000"/>-->
+                                <StackPanel Orientation="Horizontal" Canvas.Top="198">
+                                    <Path Fill="Gold" Data="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z"
+                                                              Width="20"
+                                                              Height="20"/>
+                                    <TextBlock Text="{Binding Path=Rating, StringFormat='{}{0:0.0}'}"
+                                                               FontSize="20" Margin="2,0,0,0"
+                                                               VerticalAlignment="Center"/>
+                                </StackPanel>
                                 <!--<TextBlock Canvas.Left="0" Canvas.Top="0" Text="{Binding Path=Similiar}" Foreground="Yellow" FontSize="25" Background="#5F000000"/>-->
                             </Canvas>
                             <TextBlock x:Name="titleText" TextWrapping="Wrap" Width="148" Height="50" Text="{Binding Path=Title}" FontSize="15"/>

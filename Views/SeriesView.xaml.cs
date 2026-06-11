@@ -82,6 +82,30 @@ namespace XtreamIPTV.Views
                     await vm.LoadCategoriesAsync();
                     await vm.LoadSeriesAsync();
 
+                    if (AgePanel.Children.Count == 0)
+                    {
+                        foreach (var d in vm.AgeRatings)
+                        {
+                            Button btn = new() { Content = d, FontSize = 20 };
+                            btn.Click += delegate
+                            {
+                                var scrollViewer = GetScrollViewer(SeriesListBox);
+                                scrollViewer?.ScrollToTop();
+                                AgeTogglePopupButton.IsChecked = false;
+                                foreach (var child in AgePanel.Children)
+                                {
+                                    if (child is not Button cbtn) continue;
+                                    cbtn.FontWeight = FontWeights.Normal;
+                                }
+                                btn.FontWeight = FontWeights.Bold;
+                                if (DataContext is not SeriesViewModel vm) return;
+                                vm.AgeRatingFilter = d == "ALL" ? string.Empty : d;
+                                BackButton.Visibility = Visibility.Hidden;
+                            };
+                            AgePanel.Children.Add(btn);
+                        }
+                    }
+
                     foreach (var child in SortPanel.Children)
                     {
                         if (child is not Button cbtn) continue;
@@ -193,6 +217,7 @@ namespace XtreamIPTV.Views
                 BackButton.Visibility = Visibility.Visible;
                 episodePlot.Visibility = Visibility.Visible;
                 episodeTitle.Visibility = Visibility.Visible;
+                episodeReleaseDate.Visibility = Visibility.Visible;
             }
             else
             {
@@ -207,6 +232,7 @@ namespace XtreamIPTV.Views
                 BackButton.Visibility = Visibility.Hidden;
                 episodeTitle.Visibility = Visibility.Hidden;
                 episodePlot.Visibility = Visibility.Hidden;
+                episodeReleaseDate.Visibility = Visibility.Hidden;
             }
         }
 
@@ -274,16 +300,16 @@ namespace XtreamIPTV.Views
 
         private void BackButton_Click(object sender, RoutedEventArgs e)
         {
-            ShowEpisodeControls(false);
+            var scrollViewer = GetScrollViewer(SeriesListBox);
+            scrollViewer?.ScrollToTop();
+            scrollTime = DateTime.Now;
+            if (DataContext is not SeriesViewModel seriesvm) return;
 
-            if (isSimiliar)
-            {
-                isSimiliar = false;
-                if (DataContext is not SeriesViewModel movievm) return;
-                UpdateSort(movievm.Sort);
-            }
-            //svm.SelectedEpisode = null;
-            //svm.SelectedSeason = null;
+            if (seriesvm.GoBackInHistory())
+                return;
+            ShowEpisodeControls(false);
+            seriesvm.Sort = seriesvm.Sort;
+            BackButton.Visibility = Visibility.Hidden;
         }
 
         private void DefaultSort_Click(object sender, RoutedEventArgs e)
@@ -353,6 +379,35 @@ namespace XtreamIPTV.Views
             BackButton.Visibility = Visibility.Visible;
             scrollTime = DateTime.Now;
             isSimiliar = true;
+        }
+        private void DirectorHyperlink_RequestNavigate(object sender, System.Windows.Navigation.RequestNavigateEventArgs e)
+        {
+            if (DataContext is not SeriesViewModel vm) return;
+
+            var temp = e.Uri.ToString().Split(":");
+            if (temp[0] == "director")
+            {
+                var scrollViewer = GetScrollViewer(SeriesListBox);
+                scrollViewer?.ScrollToTop();
+                vm.GetSeriesByDirector(temp[1]);
+                BackButton.Visibility = Visibility.Visible;
+                scrollTime = DateTime.Now;
+            }
+        }
+
+        private void ActorHyperlink_RequestNavigate(object sender, System.Windows.Navigation.RequestNavigateEventArgs e)
+        {
+            if (DataContext is not SeriesViewModel vm) return;
+
+            var temp = e.Uri.ToString().Split(":");
+            if (temp[0] == "actor")
+            {
+                var scrollViewer = GetScrollViewer(SeriesListBox);
+                scrollViewer?.ScrollToTop();
+                vm.GetSeriesByActor(temp[1]);
+                BackButton.Visibility = Visibility.Visible;
+                scrollTime = DateTime.Now;
+            }
         }
     }
 }

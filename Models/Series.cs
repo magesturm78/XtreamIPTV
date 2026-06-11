@@ -19,11 +19,12 @@ namespace XtreamIPTV.Models
         public string? Backdrop { get; internal set; } = null;
         public string Genre { get; internal set; } = string.Empty;
         public DateTime ReleaseDate { get; internal set; } = DateTime.MinValue;
+        public string Age { get; set; } = string.Empty;
 
         public long LastModified { get; set; }
         public string ReleaseInfo => $"{Rating} * {ReleaseDate:yyyy-MM-dd} * Seasons: {Seasons.Count} * {Genre}";
-        public List<string> Cast { get; set; } = [];
-        public List<string> Directors { get; set; } = [];
+        public List<LinkItem> Directors { get; set; } = [];
+        public List<LinkItem> Actors { get; set; } = [];
 
         public ObservableCollection<Season> Seasons { get; set; } = new();
 

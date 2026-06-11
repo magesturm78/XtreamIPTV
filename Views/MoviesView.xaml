@@ -27,9 +27,9 @@
                  SelectedItem="{Binding SelectedCategory}"
                  SelectionChanged="ListBox_SelectionChanged_1"
                  DisplayMemberPath="Name" 
-                 Height="{Binding ActualHeight, ElementName=LayoutRoot}"/>
+                 Height="{Binding ActualHeight, ElementName=LayoutRoot, TargetNullValue=100}"/>
         <!-- MOVIE DETAILS -->
-        
+
         <Canvas Grid.Row="0" Grid.Column="1" x:Name="MovieInfoCanvas" Height="390" >
             <Image Source="{Binding SelectedMovie.Backdrop, TargetNullValue={x:Null}}" Height="420" Canvas.Right="20" Canvas.Top="-15"/>
             <StackPanel Width="800" HorizontalAlignment="Left" VerticalAlignment="Top" Canvas.Top="8" Canvas.Left="8">
@@ -40,49 +40,71 @@
                 </TextBlock>
                 <TextBlock Text="{Binding SelectedMovie.ReleaseInfo, TargetNullValue=''}" FontSize="15" TextWrapping="Wrap" Foreground="White" Margin="0,5,0,0" />
             </StackPanel>
-            <ScrollViewer Height="250" Width="820" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled" Canvas.Top="70" Canvas.Left="8">
-            <StackPanel Width="800" HorizontalAlignment="Left" VerticalAlignment="Top" >
-                <!--<TextBlock Text="{Binding SelectedMovie.Title, TargetNullValue=''}" FontSize="25" FontWeight="Bold" TextWrapping="Wrap" Foreground="White" />-->
-                <TextBlock Text="{Binding SelectedMovie.Plot, TargetNullValue=''}" FontSize="20" TextWrapping="Wrap" Foreground="White" Margin="0,5,0,0" />
-                <WrapPanel Width="800" Orientation="Horizontal" Margin="0,10,0,0">
-                    <TextBlock Text="Directors:" FontSize="12" TextWrapping="Wrap" Foreground="White"/>
-                    <ItemsControl ItemsSource="{Binding SelectedMovie.Directors}">
-                        <ItemsControl.ItemsPanel>
-                            <ItemsPanelTemplate>
-                                <WrapPanel Orientation="Horizontal"/>
-                            </ItemsPanelTemplate>
-                        </ItemsControl.ItemsPanel>
-                        <ItemsControl.ItemTemplate>
-                            <DataTemplate>
-                                <TextBlock Margin="5,0,0,0">
+            <ScrollViewer Height="250" Width="820" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled" Canvas.Top="70" Canvas.Left="8" HorizontalAlignment="Center" VerticalAlignment="Top">
+                <StackPanel Width="800" HorizontalAlignment="Left" VerticalAlignment="Top" >
+                    <!--<TextBlock Text="{Binding SelectedMovie.Title, TargetNullValue=''}" FontSize="25" FontWeight="Bold" TextWrapping="Wrap" Foreground="White" />-->
+                    <TextBlock Text="{Binding SelectedMovie.Plot, TargetNullValue=''}" FontSize="20" TextWrapping="Wrap" Foreground="White" Margin="0,5,0,0" />
+                    <WrapPanel x:Name="DirectorsWrapPanel" Width="800" Orientation="Horizontal" Margin="0,10,0,0">
+                        <TextBlock Text="Directors:" FontSize="12" TextWrapping="Wrap" Foreground="White"/>
+                        <ItemsControl x:Name="DirectorsItemsControl" ItemsSource="{Binding SelectedMovie.Directors}">
+                            <ItemsControl.ItemsPanel>
+                                <ItemsPanelTemplate>
+                                    <WrapPanel Orientation="Horizontal"/>
+                                </ItemsPanelTemplate>
+                            </ItemsControl.ItemsPanel>
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate>
+                                    <TextBlock Margin="5,0,0,0">
                                     <Hyperlink x:Name="DirectorHyperlink" NavigateUri="{Binding Url}" RequestNavigate="DirectorHyperlink_RequestNavigate">
                                         <Run Text="{Binding Text}" FontSize="12" Foreground="White"/>
                                     </Hyperlink>
-                                </TextBlock>
-                            </DataTemplate>
-                        </ItemsControl.ItemTemplate>
-                    </ItemsControl>
-                </WrapPanel>
-                <WrapPanel Width="800" Orientation="Horizontal" Margin="0,10,0,0">
-                    <TextBlock Text="Actors:" FontSize="12" TextWrapping="Wrap" Foreground="White"/>
-                    <ItemsControl ItemsSource="{Binding SelectedMovie.Actors}">
-                        <ItemsControl.ItemsPanel>
-                            <ItemsPanelTemplate>
-                                <WrapPanel Orientation="Horizontal"/>
-                            </ItemsPanelTemplate>
-                        </ItemsControl.ItemsPanel>
-                        <ItemsControl.ItemTemplate>
-                            <DataTemplate>
-                                <TextBlock Margin="5,0,0,0" >
+                                    </TextBlock>
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+                        <WrapPanel.Style>
+                            <Style TargetType="WrapPanel">
+                                <Setter Property="Visibility" Value="Visible"/>
+                                <Style.Triggers>
+                                    <!-- If Count is 0, hide the parent -->
+                                    <DataTrigger Binding="{Binding ElementName=DirectorsItemsControl, Path=Items.Count}" Value="0">
+                                        <Setter Property="Visibility" Value="Collapsed"/>
+                                    </DataTrigger>
+                                </Style.Triggers>
+                            </Style>
+                        </WrapPanel.Style>
+                    </WrapPanel>
+                    <WrapPanel x:Name="ActorsWrapPanel" Width="800" Orientation="Horizontal" Margin="0,10,0,0">
+                        <TextBlock Text="Actors:" FontSize="12" TextWrapping="Wrap" Foreground="White"/>
+                        <ItemsControl x:Name="ActorsItemsControl" ItemsSource="{Binding SelectedMovie.Actors}">
+                            <ItemsControl.ItemsPanel>
+                                <ItemsPanelTemplate>
+                                    <WrapPanel Orientation="Horizontal"/>
+                                </ItemsPanelTemplate>
+                            </ItemsControl.ItemsPanel>
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate>
+                                    <TextBlock Margin="5,0,0,0" >
                                     <Hyperlink x:Name="ActorHyperlink" NavigateUri="{Binding Url}" RequestNavigate="ActorHyperlink_RequestNavigate">
                                         <Run Text="{Binding Text}" FontSize="12" Foreground="White"/>
                                     </Hyperlink>
-                                </TextBlock>
-                            </DataTemplate>
-                        </ItemsControl.ItemTemplate>
-                    </ItemsControl>
-                </WrapPanel>
-            </StackPanel>
+                                    </TextBlock>
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+                        <WrapPanel.Style>
+                            <Style TargetType="WrapPanel">
+                                <Setter Property="Visibility" Value="Visible"/>
+                                <Style.Triggers>
+                                    <!-- If Count is 0, hide the parent -->
+                                    <DataTrigger Binding="{Binding ElementName=ActorsItemsControl, Path=Items.Count}" Value="0">
+                                        <Setter Property="Visibility" Value="Collapsed"/>
+                                    </DataTrigger>
+                                </Style.Triggers>
+                            </Style>
+                        </WrapPanel.Style>
+                    </WrapPanel>
+                </StackPanel>
             </ScrollViewer>
             <Button x:Name="PlayButton" Content="Play" Width="150" Height="50" VerticalAlignment="Bottom" HorizontalAlignment="Left" Margin="5" 
                 Background="LightBlue" FontWeight="Bold" FontSize="25" Canvas.Bottom="5" Canvas.Left="175" Click="Button_Click"/>
@@ -172,7 +194,15 @@
                         <StackPanel Orientation="Vertical" VerticalAlignment="Top" Background="Transparent" >
                             <Canvas Height="230" Width="154">
                                 <Image Width="154" Source="{Binding Poster, TargetNullValue='https://motivatevalmorgan.com/wp-content/uploads/2016/06/default-movie-1-1-204x300.jpg'}" VerticalAlignment="Top" />
-                                <TextBlock Canvas.Left="0" Canvas.Top="198" Text="{Binding Rating, TargetNullValue=''}" FontSize="20" Background="#7F000000"/>
+                                <StackPanel Orientation="Horizontal" Canvas.Top="198">
+                                    <Path Data="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z"
+                                                              Width="20"
+                                                              Height="20"
+                                                              Fill="Gold"/>
+                                    <TextBlock Text="{Binding Rating, StringFormat='{}{0:0.0}'}"
+                                                               FontSize="20" Margin="2,0,0,0"
+                                                               VerticalAlignment="Center"/>
+                                </StackPanel>
                                 <!--<TextBlock Canvas.Left="0" Canvas.Top="0" Text="{Binding Path=Similiar}" Foreground="Yellow" FontSize="25" Background="#5F000000"/>-->
                             </Canvas>
                             <TextBlock x:Name="titleText" TextWrapping="Wrap" Width="150" Height="50" Text="{Binding Title, TargetNullValue=''}" FontSize="15"/>

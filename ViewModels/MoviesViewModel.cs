@@ -6,6 +6,7 @@ using System.IO;
 using System.Linq;
 using System.Security.Permissions;
 using System.Threading.Tasks;
+using System.Windows.Automation.Provider;
 using XtreamIPTV.Models;
 using XtreamIPTV.Services;
 
@@ -155,7 +156,7 @@ namespace XtreamIPTV.ViewModels
         {
             if (AllMovies.Count > 0) return;
             AllMovies = new ObservableCollection<Movie>(await _xtream.GetMoviesAsync());
-            AgeRatings = new ObservableCollection<string>(["ALL", "R", "NC-17", "G", "NR", "PG-13"]);
+            AgeRatings = new ObservableCollection<string>(["ALL", "R", "NC-17", "G", "NR", "18", "18+", "19","19+","X", "K-18", "N-18", "R18", "M/18", "20", "D", "C", "K18", "VM18", "18SX", "Adult"]);
             //AllMovies = new ObservableCollection<Movie>(await _xtream.GetMoviesAsync(_selectedCategory.Id,_decadeFilter,LanguageFilter,));
             //AllMovies.Clear();
             //var list = await _xtream.GetMoviesAsync();
@@ -231,6 +232,10 @@ namespace XtreamIPTV.ViewModels
             if (!string.IsNullOrEmpty(_ageRatingFilter) && _ageRatingFilter != "ALL")
             {
                 filter = filter.Where(m => m.Age.Equals(_ageRatingFilter, StringComparison.OrdinalIgnoreCase));
+            } 
+            else
+            {
+                filter = filter.Where(m => !m.Age.Equals("Adult", StringComparison.OrdinalIgnoreCase));
             }
             FilteredMoviesCount = filter.Count();
             return filter;
@@ -270,7 +275,6 @@ namespace XtreamIPTV.ViewModels
                 }
             });
             if (movie.RetrievedDetails) return;
-            //if (!string.IsNullOrEmpty(movie.ReleaseInfo) && !movie.ReleaseInfo.EndsWith(" * ") && movie.Rating > 0) return;
 
             movie = await _xtream.GetMovieDetailAsync(movie);
             movie.RetrievedDetails = true;
@@ -342,6 +346,12 @@ namespace XtreamIPTV.ViewModels
             if (movie?.RetrievedDetails == true) return;
             movie ??= new Movie() { Id= movieId };
             movie = await _xtream.GetMovieDetailAsync(movie);
+            if (_xtream is not DatabaseService databaseService)
+                return;
+            movie = await databaseService.LoadMovieFromDB(movieId);
+            if (movie == null)
+                return;
+            AllMovies.Add(movie);
             SelectedMovie = movie;
         }
     }

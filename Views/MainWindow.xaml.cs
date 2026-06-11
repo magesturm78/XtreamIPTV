@@ -38,7 +38,39 @@ namespace XtreamIPTV.Views
                 {
                     pv.Button_Click_1(null, null);
                 }
+            }
+            if (e.Key == System.Windows.Input.Key.F11)
+            {
+                var window = System.Windows.Window.GetWindow(this);
+                if (window == null) return;
+                if (window.WindowState == WindowState.Maximized)
+                {
+                    window.WindowStyle = WindowStyle.SingleBorderWindow;
+                    window.WindowState = WindowState.Normal;
+                    window.ResizeMode = ResizeMode.CanResize;
+                    window.Topmost = false;
+                }
+                else if (window.WindowState == WindowState.Normal)
+                {
+                    window.WindowStyle = WindowStyle.None;
+                    window.WindowState = WindowState.Maximized;
+                    window.ResizeMode = ResizeMode.NoResize;
+                    window.Topmost = true;
+                }
+            }
+        }
 
+        private void Window_StateChanged(object sender, System.EventArgs e)
+        {
+            if (this.WindowState == WindowState.Maximized)
+            {
+                // Remove border/title bar when maximized
+                this.WindowStyle = WindowStyle.None;
+            }
+            else if (this.WindowState == WindowState.Normal)
+            {
+                // Restore border/title bar when not maximized
+                this.WindowStyle = WindowStyle.SingleBorderWindow;
             }
         }
     }

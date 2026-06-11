@@ -7,15 +7,10 @@ using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Net;
-using System.Net.Cache;
 using System.Net.Http;
 using System.Net.Http.Headers;
-using System.Reflection.PortableExecutable;
-using System.Runtime.CompilerServices;
-using System.Runtime.Intrinsics.Arm;
-using System.Security.Policy;
+using System.Text.Encodings.Web;
 using System.Text.Json;
-using System.Threading;
 using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Input;
@@ -23,7 +18,6 @@ using System.Windows.Threading;
 using XtreamIPTV.Models;
 using XtreamIPTV.Services;
 using XtreamIPTV.Views;
-using static System.Net.WebRequestMethods;
 
 namespace XtreamIPTV.ViewModels
 {
@@ -229,7 +223,12 @@ namespace XtreamIPTV.ViewModels
             }
             else
             {
-                MessageBox.Show($"Cannot locate {title}");
+                //https://www.google.com/search?q={title.Replace(" ", "+")}
+                PlayerVM.Play($"series-{ep.EpisodeId}", title, $"https://www.google.com/search?q={UrlEncoder.Default.Encode(title.Replace(" ", "+"))}&udm=7");
+                CurrentView = new HTMLPlayerView { DataContext = PlayerVM };
+                SeriesProgress.SetLastWatched(ep);
+                Title = $"XtreamIPTV Searching {title}";
+                //MessageBox.Show($"Cannot locate {title}");
                 return false;
             }
             return true;
@@ -247,6 +246,18 @@ namespace XtreamIPTV.ViewModels
             {
                 movie.StreamUrl = f;
             });
+            //Directory.GetDirectories("E:\\Movies").ToList().ForEach(d =>
+            //{
+            //    if (d.StartsWith($"E:\\Movies\\{movie.Id}."))
+            //    {
+            //        string fName = d + "\\index.m3u8";
+            //        if (File.Exists(fName) && M3U8Downloader.ValidM3U8(d))
+            //        {
+            //            movie.StreamUrl = d + "\\index.m3u8";
+            //        }
+            //    }
+            //});
+            string contentType = string.Empty;
             List<string> urls = [
                 $"https://vidfast.pro/movie/{movie.Id}?autoPlay=true&server=vFast",
                         //$"https://vidsrc.xyz/embed/movie/{movie.Id}?autoplay=1",
@@ -257,6 +268,7 @@ namespace XtreamIPTV.ViewModels
             //movie.StreamUrl = urls[0];
             //url = await GetPrimewireURL(movie, client);
             //return;
+
             if (string.IsNullOrEmpty(movie.StreamUrl))
             {
                 url = $"http://159.203.85.251/play.php?movieId={movie.Id}";
@@ -267,6 +279,7 @@ namespace XtreamIPTV.ViewModels
                 {
                     url = response.RequestMessage?.RequestUri?.AbsoluteUri ?? url;
                     movie.StreamUrl = url;
+                    contentType = response.Content.Headers.ContentType?.MediaType ?? string.Empty;
                 }
                 else
                 {
@@ -279,12 +292,25 @@ namespace XtreamIPTV.ViewModels
                         if (data.GetProperty("status").ToString() == "ok")
                         {
                             movie.StreamUrl = checkpath;
+                            contentType = response.Content.Headers.ContentType?.MediaType ?? string.Empty;
                             break;
                         }
                     }
                 }
             }
-            if (urls.Contains(movie.StreamUrl))
+            else if (!movie.StreamUrl.StartsWith(@"E:\"))
+            {
+                var response2 = await client.SendAsync(new HttpRequestMessage(HttpMethod.Head, movie.StreamUrl));
+
+                contentType = response2.Content.Headers.ContentType?.MediaType ?? string.Empty;
+            }
+
+            //movie.StreamUrl = string.Empty;
+            //contentType = string.Empty;
+
+            if (!string.IsNullOrEmpty(movie.StreamUrl) && 
+                !string.IsNullOrEmpty(contentType) && 
+                contentType != "application/octet-stream")
             {
                 if (external)
                 {
@@ -299,19 +325,6 @@ namespace XtreamIPTV.ViewModels
             }
             else if (!string.IsNullOrEmpty(movie.StreamUrl))
             {
-                if (movie.StreamUrl.StartsWith("http"))
-                {
-                    try
-                    {
-                        var response2 = await client.SendAsync(new HttpRequestMessage(HttpMethod.Head, movie.StreamUrl));
-
-                        movie.StreamUrl = response2?.RequestMessage?.RequestUri?.AbsoluteUri ?? movie.StreamUrl;
-                    }
-                    catch (Exception ex)
-                    {
-                        Debug.WriteLine(ex);
-                    }
-                }
                 //Always download to E:\Movies and play from there to avoid streaming issues and allow external players to play without streaming issues
                 if (!movie.StreamUrl.StartsWith(@"E:\"))
                 {
@@ -327,18 +340,46 @@ namespace XtreamIPTV.ViewModels
                 {
                     PlayerVM.ErrorMessage = string.Empty;
                     PlayerVM.Play($"movie-{movie.Id}", movie.Title, movie.StreamUrl);
-                    CurrentView = new PlayerView { DataContext = PlayerVM };
+                    if (movie.StreamUrl.EndsWith(".m3u8"))
+                    {
+                        CurrentView = new HTMLPlayerView { DataContext = PlayerVM };
+                    }
+                    else
+                    {
+                        CurrentView = new PlayerView { DataContext = PlayerVM };
+                    }
                     Title = $"XtreamIPTV Playing {movie.Title}";
                 }
             }
             else
             {
+                PlayerVM.Play($"movie-{movie.Id}", movie.Title, $"https://www.google.com/search?q={movie.Title.Replace(" ", "+").Replace("(", "%28").Replace(")", "%29")}&udm=7");
+                CurrentView = new HTMLPlayerView { DataContext = PlayerVM };
+                Title = $"XtreamIPTV Searching {movie.Title}";
                 //url = await GetPrimewireURL(movie, client);
                 //Process.Start(new ProcessStartInfo($"https://www.primewire.mov/api/v1/s?tmdb={movie.Id}&type=movie") { UseShellExecute = true });
-                MessageBox.Show($"Cannot locate {movie.Title}");
+                //MessageBox.Show($"Cannot locate {movie.Title}");
                 return;
             }
             Title = $"XtreamIPTV Playing {movie.Title}";
+        }
+
+        public async Task<string> GetMediaType(string url)
+        {
+            using var client = new HttpClient();
+
+            // Use HEAD request to get headers only (saves bandwidth)
+            var request = new HttpRequestMessage(HttpMethod.Head, url);
+            var response = await client.SendAsync(request);
+
+            // If HEAD is not supported by the server, fall back to a partial GET
+            if (!response.IsSuccessStatusCode)
+            {
+                // Use HttpCompletionOption.ResponseHeadersRead to stop after headers are received
+                response = await client.GetAsync(url, HttpCompletionOption.ResponseHeadersRead);
+            }
+
+            return response.Content.Headers.ContentType?.MediaType;
         }
 
         private async Task<bool> DownloadMovie(Movie movie, bool external, HttpClient client)
@@ -381,19 +422,8 @@ namespace XtreamIPTV.ViewModels
             {
                 try
                 {
-                    url = $"https://www.primewire.mov/api/v1/l?key={server.key}";
-
-                    using var msg = new HttpRequestMessage(HttpMethod.Get, new Uri(url));
-
-                    using var req = await client.SendAsync(msg);
-
-                    var str1 = await req.Content.ReadAsStringAsync();
-
-                    KeyData keyData = JsonSerializer.Deserialize<KeyData>(str1);
-
-                    if (keyData == null) continue;
-
-                    return keyData.link;
+                    Process.Start(new ProcessStartInfo($"https://www.primewire.mov/api/v1/s?tmdb={movie.Id}&type=movie") { UseShellExecute = true });
+                    return string.Empty;
                 }
                 catch (Exception ex)
                 {

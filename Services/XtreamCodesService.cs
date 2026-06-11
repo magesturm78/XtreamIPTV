@@ -748,8 +748,8 @@ namespace XtreamIPTV.Services
                 OriginalLanguage = langMap.Any(l => l.Value == o_lang) ? langMap.Where(l => l.Value == o_lang).FirstOrDefault().Key : langs.Count() > 0 ? langs[0] : string.Empty,
                 //ReleaseInfo = $"{release_date} * {age}{genre}{runtime}",
                 Rating = double.TryParse(rating, out var rat) ? rat : 0.0,
-                Cast = cast,
-                Directors = director,
+                Actors = cast.Select(a => new LinkItem { Text = a.Trim(), Url = $"Actor:{a.Trim()}" }).ToList(),
+                Directors = director.Select(d => new LinkItem { Text = d.Trim(), Url = $"Director:{d.Trim()}" }).ToList(),
             };
             return series;
         }

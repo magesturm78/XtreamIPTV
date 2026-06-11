@@ -4,7 +4,7 @@
         xmlns:vm="clr-namespace:XtreamIPTV.ViewModels"
         xmlns:controls="clr-namespace:XtreamIPTV.Controls"
         Title="{Binding Title}" Height="720" Width="1280"
-        MouseMove="Window_MouseMove" KeyDown="Window_KeyDown">
+        MouseMove="Window_MouseMove" KeyDown="Window_KeyDown" StateChanged="Window_StateChanged">
     <Window.DataContext>
         <vm:MainViewModel/>
     </Window.DataContext>
