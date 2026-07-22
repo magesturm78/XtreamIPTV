@@ -213,6 +213,10 @@ namespace XtreamIPTV.ViewModels
             {
                 filter = filter.Where(m => m.Age.Equals(_ageRatingFilter, StringComparison.OrdinalIgnoreCase));
             }
+            else
+            {
+                filter = filter.Where(m => !m.Age.Equals("Adult", StringComparison.OrdinalIgnoreCase));
+            }
             FilteredSeriesCount = filter.Count();
             return filter;
         }
@@ -253,6 +257,7 @@ namespace XtreamIPTV.ViewModels
 
         public void ApplyFilters()
         {
+            _historyStack.Clear();
             FilteredSeries.Clear();
             foreach (var m in GetFilteredSeries().Take(ROW_SIZE * 5))
             {

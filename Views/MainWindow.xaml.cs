@@ -16,7 +16,7 @@ namespace XtreamIPTV.Views
             Point mousePos = e.GetPosition(this);
 
             // Check if mouse is on the left side (X < half of width)
-            if (mousePos.X < 25 && mousePos.Y < 250)
+            if (mousePos.X < 25 && mousePos.Y < 310)
             {
                 MainViewModel.Instance.ShowSideNav();
             }

@@ -6,6 +6,8 @@ namespace XtreamIPTV.Services
 {
     public interface IIPTVService
     {
+        Task<IEnumerable<Category>> GetLiveCategoriesAsync();
+        Task<IEnumerable<Live>> GetLiveAsync();
         Task<IEnumerable<Category>> GetMovieCategoriesAsync();
         Task<Movie> GetMovieDetailAsync(Movie movie);
         Task<IEnumerable<Movie>> GetMoviesAsync();

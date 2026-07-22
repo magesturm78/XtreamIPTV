@@ -444,7 +444,8 @@ namespace XtreamIPTV.Services
             return new Movie
             {
                 Id = id,
-                NavigaionUrl = "https://www.themoviedb.org/movie/" + id,
+                //NavigaionUrl = "https://www.themoviedb.org/movie/" + id,
+                NavigaionUrl = $"https://www.cineby.at/movie/{id}",
                 Title = $"{title} ({release_date[..4]})",
                 Age = ageDisp.Trim(),
                 ReleaseDate = releaseDate,
@@ -610,7 +611,8 @@ namespace XtreamIPTV.Services
                 string query1 = "SELECT similiar " +
                                 "FROM similiar_movies " +
                                 "WHERE 1=1 " +
-                               $"  AND tmdb_id = {movie.Id} ";
+                               $"  AND tmdb_id = {movie.Id} " +
+                               $"  AND Updated > '{DateTime.Now.AddDays(-30):yyyy-MM-dd}'";
                 using var command1 = new SqliteCommand(query1, connection);
                 var saved_list = command1.ExecuteScalar();
 
@@ -729,7 +731,8 @@ namespace XtreamIPTV.Services
                 string query1 = "SELECT similiar " +
                                 "FROM similiar_series " +
                                 "WHERE 1=1 " +
-                               $"  AND tmdb_id = {series.Id} ";
+                               $"  AND tmdb_id = {series.Id} " +
+                               $"  AND Updated > '{DateTime.Now.AddDays(-30):yyyy-MM-dd}'";
                 using var command1 = new SqliteCommand(query1, connection);
                 var saved_list = command1.ExecuteScalar();
                 if (saved_list != null)
@@ -738,7 +741,7 @@ namespace XtreamIPTV.Services
                     if (!string.IsNullOrEmpty(similiar))
                         series.Similiar = similiar.Split(',').Select(s => int.TryParse(s, out var smid) ? smid : 0).Where(smid => smid > 0).ToList();
                 }
-                else
+                if (series.Similiar.Count == 0)
                 {
                     if (_tmdbclient == null)
                     {
@@ -746,11 +749,14 @@ namespace XtreamIPTV.Services
                         _tmdbclient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", ConfigurationManager.AppSettings["Bearer"]);
                         _tmdbclient.DefaultRequestHeaders.Add("accept", "application/json");
                     }
-                    int total_pages = MAX_PAGES;
-                    List<string> urls = [//$"https://api.themoviedb.org/3/tv/{series.Id}/recommendations",
-                                             $"https://api.themoviedb.org/3/tv/{series.Id}/similar"];
+                    List<string> urls = [$"https://api.themoviedb.org/3/tv/{series.Id}/similar",
+                                             $"https://api.themoviedb.org/3/tv/{series.Id}/recommendations"];
                     foreach (string url in urls)
                     {
+                        int total_pages = MAX_PAGES;
+                        //if no similiar use recommendations to get more results
+                        if (series.Similiar.Count > 0)
+                            break;
                         try
                         {
                             int page = 1;
@@ -786,10 +792,13 @@ namespace XtreamIPTV.Services
                             Debug.Print($"Error fetching similar series for ID {series.Id}: {ex.Message}");
                         }
                     }
-                    query1 = $"INSERT or REPLACE into similiar_series (tmdb_id, similiar, updated) " +
+                    if (series.Similiar.Count > 0)
+                    {
+                        query1 = $"INSERT or REPLACE into similiar_series (tmdb_id, similiar, updated) " +
                             $"VALUES ({series.Id}, '{string.Join(",", series.Similiar)}', datetime(\"now\", \"localtime\"))";
                         using var command2 = new SqliteCommand(query1, connection);
                         command2.ExecuteNonQuery();
+                    }
                 }
             }
             if (!series.Similiar.Contains(series.Id))
@@ -979,8 +988,19 @@ namespace XtreamIPTV.Services
                 Actors = cast.Select(a => new LinkItem { Text = a.Trim(), Url = $"Actor:{a.Trim()}" }).ToList(),
                 Directors = director.Select(d => new LinkItem { Text = d.Trim(), Url = $"Director:{d.Trim()}" }).ToList(),
                 Age = ageDisp.Trim(),
+                NavigaionUrl = $"https://www.cineby.at/tv/{id}",
             };
             return series;
+        }
+
+        public async Task<IEnumerable<Category>> GetLiveCategoriesAsync()
+        {
+            return new List<Category>();
+        }
+
+        public async Task<IEnumerable<Live>> GetLiveAsync()
+        {
+            return new List<Live>();
         }
     }
 }

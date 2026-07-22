@@ -16,6 +16,7 @@ namespace XtreamIPTV.Models
         public double Rating { get; set; } = 0.0;
         public int CategoryId { get; set; }
         public string? Poster { get; set; } = null;
+        public string NavigaionUrl { get; set; } = string.Empty;
         public string? Backdrop { get; internal set; } = null;
         public string Genre { get; internal set; } = string.Empty;
         public DateTime ReleaseDate { get; internal set; } = DateTime.MinValue;

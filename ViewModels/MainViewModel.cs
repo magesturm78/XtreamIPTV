@@ -9,6 +9,7 @@ using System.Linq;
 using System.Net;
 using System.Net.Http;
 using System.Net.Http.Headers;
+using System.Security.Policy;
 using System.Text.Encodings.Web;
 using System.Text.Json;
 using System.Threading.Tasks;
@@ -28,6 +29,7 @@ namespace XtreamIPTV.ViewModels
 
         public static MainViewModel Instance { get; private set; }
         private string _title = "XtreamIPTV";
+        private bool _download = false;
         public string Title
         {
             get
@@ -62,6 +64,7 @@ namespace XtreamIPTV.ViewModels
             }
         }
 
+        public LiveViewModel LiveVM { get; }
         public MoviesViewModel MoviesVM { get; }
         public SeriesViewModel SeriesVM { get; }
         public PlayerViewModel PlayerVM { get; }
@@ -69,6 +72,7 @@ namespace XtreamIPTV.ViewModels
         public SettingsViewModel SettingsVM { get; }
 
         public SearchView SearchView { get; }
+        public LiveView LiveView { get; }
         public MoviesView MoviesView { get; }
         public SeriesView SeriesView { get; }
         public SettingsView SettingsView { get; }
@@ -78,6 +82,7 @@ namespace XtreamIPTV.ViewModels
         public SeriesEpisodeService SeriesProgress { get; }
         public IIPTVService Xtream { get; }
 
+        public ICommand ShowLiveCommand { get; }
         public ICommand ShowSearchCommand { get; }
         public ICommand ShowSeriesCommand { get; }
         public ICommand ShowMoviesCommand { get; }
@@ -86,31 +91,39 @@ namespace XtreamIPTV.ViewModels
         public MainViewModel()
         {
             Instance = this;
-            //NCW
-            //Xtream = new XtreamCodesService();
-            Xtream = new DatabaseService();
+
+            SettingsVM = new SettingsViewModel();
+
+            if (SettingsVM.XtreamMode == "Database") { 
+                Xtream = new DatabaseService();
+                _download = true;
+            }
+            else 
+                Xtream = new XtreamCodesService();
 
             Favorites = new FavoritesService();
             Continue = new ContinueWatchingService();
             SeriesProgress = new SeriesEpisodeService();
 
+            LiveVM = new LiveViewModel(Xtream);
             MoviesVM = new MoviesViewModel(Xtream, Favorites, Continue);
             SeriesVM = new SeriesViewModel(Xtream, Favorites, SeriesProgress);
             SearchVM = new SearchViewModel(MoviesVM, SeriesVM);
             PlayerVM = new PlayerViewModel(Continue);
-            SettingsVM = new SettingsViewModel();
 
+            LiveView = new LiveView { DataContext = LiveVM };
             SearchView = new SearchView { DataContext = SearchVM };
             MoviesView = new MoviesView { DataContext = MoviesVM };
             SeriesView = new SeriesView { DataContext = SeriesVM };
             SettingsView = new SettingsView { DataContext = SettingsVM };
 
             ShowSearchCommand = new RelayCommand(_ => CurrentView = SearchView);
+            ShowLiveCommand = new RelayCommand(_ => CurrentView = LiveView);
             ShowMoviesCommand = new RelayCommand(_ => CurrentView = MoviesView);
             ShowSeriesCommand = new RelayCommand(_ => CurrentView = SeriesView);
             ShowSettingsCommand = new RelayCommand(_ => CurrentView = SettingsView);
 
-            CurrentView = SearchView;
+            CurrentView = LiveView;
 
             _hideTimer.Interval = TimeSpan.FromSeconds(1); // Hide after 3 seconds
             _hideTimer.Tick += (_, _) =>
@@ -132,9 +145,18 @@ namespace XtreamIPTV.ViewModels
         {
             HttpClient client = new();
             List<string> urls = [
-                $"https://vidfast.pro/tv/{ep.SeriesId}/{ep.SeasonId}/{ep.EpisodeNumber}?autoPlay=true&server=Alpha",
+                $"https://vidfast.vc/tv/{ep.SeriesId}/{ep.SeasonId}/{ep.EpisodeNumber}?autoPlay=true&server=Alpha",
             ];
             string url = string.Empty;
+            var title = $"{SeriesVM.GetSeriesTitle(ep.SeriesId)} {ep.Title}";
+
+            //PlayerVM.Play($"series-{ep.EpisodeId}", title, $"https://www.google.com/search?q={UrlEncoder.Default.Encode(title)}&udm=7");
+            //CurrentView = new HTMLPlayerView { DataContext = PlayerVM };
+            //SeriesProgress.SetLastWatched(ep);
+            //Title = $"XtreamIPTV Searching {title}";
+            ////MessageBox.Show($"Cannot locate {title}");
+            //return false;
+
             if (string.IsNullOrEmpty(ep.StreamUrl))
             {
                 if (!string.IsNullOrEmpty(ep.DirectSource))
@@ -186,7 +208,6 @@ namespace XtreamIPTV.ViewModels
                 }
             }
 
-            var title = $"{SeriesVM.GetSeriesTitle(ep.SeriesId)} {ep.Title}";
             if (urls.Contains(ep.StreamUrl))
             {
                 if (external)
@@ -195,7 +216,7 @@ namespace XtreamIPTV.ViewModels
                 }
                 else
                 {
-                    PlayerVM.Play($"series-{ep.EpisodeId}", title, ep.StreamUrl);
+                    PlayerVM.Play($"episode-{ep.EpisodeId}", title, ep.StreamUrl);
                     CurrentView = new HTMLPlayerView { DataContext = PlayerVM };
                     SeriesProgress.SetLastWatched(ep);
                     Title = $"XtreamIPTV Playing {title}";
@@ -206,6 +227,11 @@ namespace XtreamIPTV.ViewModels
                 var response2 = await client.SendAsync(new HttpRequestMessage(HttpMethod.Head, ep.StreamUrl));
 
                 ep.StreamUrl = response2?.RequestMessage?.RequestUri?.AbsoluteUri ?? ep.StreamUrl;
+                //Always download to E:\Episodes and play from there to avoid streaming issues and allow external players to play without streaming issues
+                if (!ep.StreamUrl.StartsWith(@"E:\"))
+                {
+                    DownloadEpisode(ep, external, client);
+                }
                 if (external)
                 {
                     string exe = "C:\\Program Files\\MPC-HC\\mpc-hc64.exe";
@@ -215,7 +241,7 @@ namespace XtreamIPTV.ViewModels
                 else
                 {
                     PlayerVM.ErrorMessage = string.Empty;
-                    PlayerVM.Play($"series-{ep.EpisodeId}", title, ep.StreamUrl);
+                    PlayerVM.Play($"episode-{ep.EpisodeId}", title, ep.StreamUrl);
                     CurrentView = new PlayerView { DataContext = PlayerVM };
                     Title = $"XtreamIPTV Playing {title}";
                 }
@@ -224,7 +250,7 @@ namespace XtreamIPTV.ViewModels
             else
             {
                 //https://www.google.com/search?q={title.Replace(" ", "+")}
-                PlayerVM.Play($"series-{ep.EpisodeId}", title, $"https://www.google.com/search?q={UrlEncoder.Default.Encode(title.Replace(" ", "+"))}&udm=7");
+                PlayerVM.Play($"episode-{ep.EpisodeId}", title, $"https://www.google.com/search?q={UrlEncoder.Default.Encode(title)}&udm=7");
                 CurrentView = new HTMLPlayerView { DataContext = PlayerVM };
                 SeriesProgress.SetLastWatched(ep);
                 Title = $"XtreamIPTV Searching {title}";
@@ -246,20 +272,9 @@ namespace XtreamIPTV.ViewModels
             {
                 movie.StreamUrl = f;
             });
-            //Directory.GetDirectories("E:\\Movies").ToList().ForEach(d =>
-            //{
-            //    if (d.StartsWith($"E:\\Movies\\{movie.Id}."))
-            //    {
-            //        string fName = d + "\\index.m3u8";
-            //        if (File.Exists(fName) && M3U8Downloader.ValidM3U8(d))
-            //        {
-            //            movie.StreamUrl = d + "\\index.m3u8";
-            //        }
-            //    }
-            //});
             string contentType = string.Empty;
             List<string> urls = [
-                $"https://vidfast.pro/movie/{movie.Id}?autoPlay=true&server=vFast",
+                $"https://vidfast.vc/movie/{movie.Id}?autoPlay=true&server=vFast",
                         //$"https://vidsrc.xyz/embed/movie/{movie.Id}?autoplay=1",
                         //$"https://111movies.com/movie/{movie.Id}",
                         //$"https://vidsrc.cc/v3/embed/movie/{movie.Id}",
@@ -310,7 +325,8 @@ namespace XtreamIPTV.ViewModels
 
             if (!string.IsNullOrEmpty(movie.StreamUrl) && 
                 !string.IsNullOrEmpty(contentType) && 
-                contentType != "application/octet-stream")
+                contentType != "application/octet-stream" &&
+                contentType != "video/mp4")
             {
                 if (external)
                 {
@@ -353,12 +369,37 @@ namespace XtreamIPTV.ViewModels
             }
             else
             {
-                PlayerVM.Play($"movie-{movie.Id}", movie.Title, $"https://www.google.com/search?q={movie.Title.Replace(" ", "+").Replace("(", "%28").Replace(")", "%29")}&udm=7");
-                CurrentView = new HTMLPlayerView { DataContext = PlayerVM };
-                Title = $"XtreamIPTV Searching {movie.Title}";
-                //url = await GetPrimewireURL(movie, client);
-                //Process.Start(new ProcessStartInfo($"https://www.primewire.mov/api/v1/s?tmdb={movie.Id}&type=movie") { UseShellExecute = true });
-                //MessageBox.Show($"Cannot locate {movie.Title}");
+                Directory.GetDirectories("E:\\Movies").ToList().ForEach(d =>
+                {
+                    if (d.StartsWith($"E:\\Movies\\{movie.Id}."))
+                    {
+                        string fName = d + "\\index.m3u8";
+                        if (File.Exists(fName) && M3U8Downloader.ValidM3U8(d))
+                        {
+                            movie.StreamUrl = d + "\\index.m3u8";
+                            if (external)
+                            {
+                                Process.Start(new ProcessStartInfo(movie.StreamUrl) { UseShellExecute = true });
+                            }
+                            else
+                            {
+                                PlayerVM.Play($"movie-{movie.Id}", movie.Title, movie.StreamUrl);
+                                CurrentView = new HTMLPlayerView { DataContext = PlayerVM };
+                                Title = $"XtreamIPTV Playing {movie.Title}";
+                            }
+                            return;
+                        }
+                    }
+                });
+                if (string.IsNullOrEmpty(movie.StreamUrl))
+                {
+                    PlayerVM.Play($"movie-{movie.Id}", movie.Title, $"https://www.google.com/search?q={movie.Title.Replace(" ", "+").Replace("(", "%28").Replace(")", "%29")}&udm=7");
+                    CurrentView = new HTMLPlayerView { DataContext = PlayerVM };
+                    Title = $"XtreamIPTV Searching {movie.Title}";
+                    //url = await GetPrimewireURL(movie, client);
+                    //Process.Start(new ProcessStartInfo($"https://www.primewire.mov/api/v1/s?tmdb={movie.Id}&type=movie") { UseShellExecute = true });
+                    //MessageBox.Show($"Cannot locate {movie.Title}");
+                }
                 return;
             }
             Title = $"XtreamIPTV Playing {movie.Title}";
@@ -384,6 +425,7 @@ namespace XtreamIPTV.ViewModels
 
         private async Task<bool> DownloadMovie(Movie movie, bool external, HttpClient client)
         {
+            if (!_download) return false;
             // Start streaming the download
             char[] invalidChars = Path.GetInvalidFileNameChars();
 
@@ -404,6 +446,32 @@ namespace XtreamIPTV.ViewModels
             movie.StreamUrl = localPath;
             if (!external)
                 PlayerVM.Play($"movie-{movie.Id}", movie.Title, movie.StreamUrl);
+            return true;
+        }
+
+        private async Task<bool> DownloadEpisode(Episode episode, bool external, HttpClient client)
+        {
+            if (!_download) return false;
+            // Start streaming the download
+            char[] invalidChars = Path.GetInvalidFileNameChars();
+
+            // Use LINQ Aggregate for a concise replacement
+            // This approach traverses the string once
+            string safeName = invalidChars.Aggregate(episode.Title, (current, c) => current.Replace(c, '_'));
+
+            // Optional: Trim trailing periods and spaces, which are invalid on Windows
+            safeName = safeName.TrimEnd('.', ' ');
+            string localPath = Path.Combine(@"E:\Episodes", $"{episode.EpisodeId}.{safeName}.{episode.StreamUrl.Split('.').Last()}");
+
+            using var response = await client.GetAsync(episode.StreamUrl, HttpCompletionOption.ResponseHeadersRead);
+            using var streamToRead = await response.Content.ReadAsStreamAsync();
+            using var fileStream = new FileStream(localPath, FileMode.Create, FileAccess.Write, FileShare.ReadWrite);
+
+            // Copy to file while playing
+            await streamToRead.CopyToAsync(fileStream);
+            episode.StreamUrl = localPath;
+            if (!external)
+                PlayerVM.Play($"episode-{episode.EpisodeId}", episode.Title, episode.StreamUrl);
             return true;
         }
 
@@ -483,11 +551,18 @@ namespace XtreamIPTV.ViewModels
             _ = await PlayEpisode(nextEpisode);
         }
 
-        internal void NavigateToUri(Uri uri)
+        internal void NavigateToUri(string id, string title, Uri uri)
         {
-            PlayerVM.Play($"", "", uri.ToString());
+            PlayerVM.Play(id, title, uri.ToString());
             CurrentView = new HTMLPlayerView { DataContext = PlayerVM };
             Title = $"XtreamIPTV {uri}";
+        }
+
+        internal void PlayLive(Live selectedLive)
+        {
+            PlayerVM.Play($"live-{selectedLive.StreamId}", selectedLive.Name, selectedLive.StreamUrl);
+            CurrentView = new PlayerView { DataContext = PlayerVM };
+            Title = $"XtreamIPTV {selectedLive.Name}";
         }
     }
 }

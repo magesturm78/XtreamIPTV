@@ -21,6 +21,7 @@ namespace XtreamIPTV.ViewModels
         private string _serverUrl = "http://localhost";
         private string _username = "12";
         private string _password = "12";
+        private string _xtreamMode = "Database";
 
         public string ServerUrl
         {
@@ -51,6 +52,16 @@ namespace XtreamIPTV.ViewModels
             }
         }
 
+        public string XtreamMode
+        {
+            get => _xtreamMode;
+            set
+            {
+                _xtreamMode = value;
+                PropertyChanged?.Invoke(this, new(nameof(XtreamMode)));
+            }
+        }
+
         public SettingsViewModel() 
         {
             SaveCommand = new RelayCommand(_ => SaveSettings());
@@ -61,6 +72,7 @@ namespace XtreamIPTV.ViewModels
                 _serverUrl = data.GetProperty("baseUrl").GetString() ?? "";
                 _username = data.GetProperty("username").GetString() ?? "";
                 _password = data.GetProperty("password").GetString() ?? "";
+                _xtreamMode = data.GetProperty("xtreamMode").GetString() ?? "Database";
             }
             else
             {
@@ -75,6 +87,7 @@ namespace XtreamIPTV.ViewModels
                 new KeyValuePair<string, JsonNode?>("baseUrl", _serverUrl),
                 new KeyValuePair<string, JsonNode?>("username", _username),
                 new KeyValuePair<string, JsonNode?>("password", _password),
+                new KeyValuePair<string, JsonNode?>("xtreamMode", _xtreamMode),
             ];
 
             File.WriteAllText(filePath, JsonSerializer.Serialize(jo));

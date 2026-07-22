@@ -41,7 +41,24 @@ namespace XtreamIPTV.Views
 
         private async void InitializeWebView()
         {
-            await webView.EnsureCoreWebView2Async(null);
+            //await webView.EnsureCoreWebView2Async(null);
+
+            // 2. Enable browser extensions
+            //webView.CoreWebView2.Environment.Options.AreBrowserExtensionsEnabled = true;
+            var options = new Microsoft.Web.WebView2.Core.CoreWebView2EnvironmentOptions();
+            //options.AdditionalBrowserArguments = "--enable-features=msEdgeAddBrowserExtension";
+            options.AreBrowserExtensionsEnabled = true;
+            // 2. Create the environment
+            var environment = await Microsoft.Web.WebView2.Core.CoreWebView2Environment.CreateAsync(null, null, options);
+
+            // 3. Ensure your WebView2 uses this environment
+            await webView.EnsureCoreWebView2Async(environment);
+            // 3. Provide the absolute path to the folder containing manifest.json
+            string extensionPath = @"D:\Development\uBlock0.chromium";
+
+            // 4. Add the extension
+            await webView.CoreWebView2.Profile.AddBrowserExtensionAsync(extensionPath);
+
             webView.CoreWebView2.AddWebResourceRequestedFilter("*", CoreWebView2WebResourceContext.All);
 
             webView.CoreWebView2.Navigate(VM?.CurrentStreamUrl);
@@ -96,8 +113,57 @@ namespace XtreamIPTV.Views
                 {
                     if (VM?.CurrentEpisodeId.StartsWith("series") == true)
                     {
-                        //https://vidfast.pro/tv/21510/1/6?autoPlay=true&server=Alpha
-                        var info = webView.CoreWebView2.Source.Split(new[] { "https://vidfast.pro/tv/", "?autoPlay=true" }, StringSplitOptions.RemoveEmptyEntries);
+                        //https://www.cineby.at/_next/data/iilGHVaLFkYR69EGuIXNR/en/tv/1622/6/1.json?play=true&params=1622&params=6&params=1
+                        //https://www.cineby.at/_next/data/iilGHVaLFkYR69EGuIXNR/en/tv/1622/6/2.json?params=1622&params=6&params=2
+                        var info = webView.CoreWebView2.Source.Split(new[] { "https://www.cineby.at/", "?" }, StringSplitOptions.RemoveEmptyEntries);
+                        var episode_info = info[0].Split('/');
+                        var seasonId = int.Parse(episode_info[1]);
+                        var seasonNum = int.Parse(episode_info[2]);
+                        var episodeNum = int.Parse(episode_info[3]);
+
+                        if (mvm == null || mvm.SeriesVM == null || mvm.SeriesVM.SelectedSeries == null)
+                        {
+                            mvm?.ShowSeriesCommand.Execute(this);
+                            return;
+                        }
+
+                        if (mvm.SeriesVM.SelectedSeries.Id != seasonId)
+                        {
+                            mvm.ShowSeriesCommand.Execute(this);
+                            return;
+                        }
+
+                        var season = mvm.SeriesVM.SelectedSeries?.Seasons.Where(s => s.SeasonNumber == seasonNum).FirstOrDefault();
+                        if (season == null)
+                        {
+                            mvm.ShowSeriesCommand.Execute(this);
+                            return;
+                        }
+
+                        var episode = season.Episodes.Where(s => s.EpisodeNumber == episodeNum).FirstOrDefault();
+                        if (episode == null)
+                        {
+                            mvm.ShowSeriesCommand.Execute(this);
+                            return;
+                        }
+
+                        episode.StreamUrl = webView.CoreWebView2.Source;
+                        mvm.SeriesVM.SelectedEpisode = episode;
+
+                        string title = $"{mvm.SeriesVM.GetSeriesTitle(episode.SeriesId)} {episode.Title}";
+                        VM?.Play($"series-{episode.SeriesId}", title, episode.StreamUrl);
+                        VM?.CurrentEpisodeId = $"series-{episode.SeriesId}";
+                        mvm.SeriesProgress.SetLastWatched(episode);
+
+                        mvm.Title = $"XtreamIPTV Playing {title}";
+
+                    }
+                    else if (VM?.CurrentEpisodeId.StartsWith("episode") == true)
+                    {
+                        //https://vidfast.vc/tv/21510/1/6?autoPlay=true&server=Alpha
+                        //https://www.cineby.at/_next/data/iilGHVaLFkYR69EGuIXNR/en/tv/1622/6/1.json?play=true&params=1622&params=6&params=1
+                        //https://www.cineby.at/_next/data/iilGHVaLFkYR69EGuIXNR/en/tv/1622/6/2.json?params=1622&params=6&params=2
+                        var info = webView.CoreWebView2.Source.Split(new[] { "https://vidfast.vc/tv/", "?autoPlay=true" }, StringSplitOptions.RemoveEmptyEntries);
                         var episode_info = info[0].Split('/');
                         var seasonId = int.Parse(episode_info[0]);
                         var seasonNum = int.Parse(episode_info[1]);
@@ -133,8 +199,8 @@ namespace XtreamIPTV.Views
                         mvm.SeriesVM.SelectedEpisode = episode;
 
                         string title = $"{mvm.SeriesVM.GetSeriesTitle(episode.SeriesId)} {episode.Title}";
-                        VM?.Play($"series-{episode.EpisodeId}", title, episode.StreamUrl);
-                        VM?.CurrentEpisodeId = $"series-{episode.EpisodeId}";
+                        VM?.Play($"episode-{episode.EpisodeId}", title, episode.StreamUrl);
+                        VM?.CurrentEpisodeId = $"episode-{episode.EpisodeId}";
                         mvm.SeriesProgress.SetLastWatched(episode);
 
                         mvm.Title = $"XtreamIPTV Playing {title}";
@@ -176,13 +242,20 @@ namespace XtreamIPTV.Views
                 "://cdn.twinrdengine.com",
                 "://media-hls.saawsedge.com",
                 "://www-freeporntube-com",
-                "://zw2a.cupidnets.com"
+                "://zw2a.cupidnets.com",
+                "://mc.yandex.com",
+                "ad.twinrdengine.com",
+                ".magsrv.com",
+                "://syndication.traffichaus.com",
+                "://core.dreamserve.dev",
+                "://playhubconnect.com",
+                "://axjndvucr.com",
+                ".blirtonethe.com"
         };
         private void CoreWebView2_WebResourceRequested(object? sender, CoreWebView2WebResourceRequestedEventArgs e)
         {
             string uri = e.Request.Uri;
             string filename = $"log_{DateTime.Now:yyyy_MM_dd}.txt";
-            File.AppendAllText(filename, $"{DateTime.Now} : \t\t{uri}\r\n");
 
             foreach (string domain in adDomains)
             {
@@ -191,9 +264,11 @@ namespace XtreamIPTV.Views
                     // Cancel the request by returning an empty 404 response
                     e.Response = webView.CoreWebView2.Environment.CreateWebResourceResponse(
                         null, 404, "Blocked", null);
+                    //File.AppendAllText(filename, $"{DateTime.Now} : \t\t\tBlocked...\r\n");
                     return;
                 }
             }
+            File.AppendAllText(filename, $"{DateTime.Now} : \t\t{uri}\r\n");
             //File.AppendAllText(filename, $"{DateTime.Now} : \t\t\t{e.ResourceContext}\r\n");
             if (VM?.CurrentEpisodeId.StartsWith("movie") == false)
                 return;
@@ -260,6 +335,7 @@ namespace XtreamIPTV.Views
 
                             // 5. Assign the response to the event args
                             Debug.Print($"loading from Cache: {index}, {uri}");
+                            File.AppendAllText(filename, $"{DateTime.Now} : \t\t\tloading from Cache: {newFile}\r\n");
                             e.Response = response;
                             return;
                         }
@@ -351,7 +427,7 @@ namespace XtreamIPTV.Views
                         if (VM?.CurrentEpisodeId.StartsWith("movie") == true)
                         {
                             var movie = MainViewModel.Instance.MoviesVM.AllMovies.FirstOrDefault(m => m.Id == int.Parse(VM?.CurrentEpisodeId.Split('-')[1]));
-                            if (movie != null && movie.StreamUrl != webView.CoreWebView2.Source)
+                            if (movie != null && movie.StreamUrl != webView.CoreWebView2.Source && !movie.StreamUrl.StartsWith("E:\\"))
                             {
                                 movie.StreamUrl = webView.CoreWebView2.Source;
                             }

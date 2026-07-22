@@ -228,6 +228,7 @@ namespace XtreamIPTV.Views
             if (DataContext is not MoviesViewModel vm) return;
             RemoveHistButton.Visibility = vm?.SelectedCategory?.Id == -3 ? Visibility.Visible : Visibility.Collapsed;
             BackButton.Visibility = Visibility.Hidden;
+            
         }
 
         private async void PlayButton2_Click(object sender, RoutedEventArgs e)
@@ -378,10 +379,10 @@ namespace XtreamIPTV.Views
             if (window?.DataContext is MainViewModel mvm)
             {
                 Cursor = Cursors.Wait;
-
                 try
                 {
-                    mvm.NavigateToUri(e.Uri);
+                    var movie = mvm.MoviesVM.SelectedMovie;
+                    mvm.NavigateToUri($"movie-{movie.Id}", movie.Title, e.Uri);
                 }
                 catch (Exception ex)
                 {

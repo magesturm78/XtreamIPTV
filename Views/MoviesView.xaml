@@ -22,7 +22,7 @@
             </LinearGradientBrush>
         </Grid.Background>
         <!-- CATEGORY LIST -->
-        <ListBox Grid.RowSpan="2" Background="#2B373E" Foreground="White" FontSize="18" BorderThickness="0"
+        <ListBox Grid.RowSpan="2" Background="#1D252B" Foreground="White" FontSize="18" BorderThickness="0"
                  ItemsSource="{Binding Categories}" 
                  SelectedItem="{Binding SelectedCategory}"
                  SelectionChanged="ListBox_SelectionChanged_1"

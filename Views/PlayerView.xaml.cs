@@ -234,6 +234,10 @@ namespace XtreamIPTV.Views
                 {
                     mvm.ShowMoviesCommand.Execute(this);
                 }
+                if (VM?.CurrentEpisodeId.StartsWith("live") == true)
+                {
+                    mvm.ShowLiveCommand.Execute(this);
+                }
             }
         }
 

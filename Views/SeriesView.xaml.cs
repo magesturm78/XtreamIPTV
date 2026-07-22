@@ -308,7 +308,7 @@ namespace XtreamIPTV.Views
             if (seriesvm.GoBackInHistory())
                 return;
             ShowEpisodeControls(false);
-            seriesvm.Sort = seriesvm.Sort;
+            //seriesvm.Sort = seriesvm.Sort;
             BackButton.Visibility = Visibility.Hidden;
         }
 
@@ -407,6 +407,31 @@ namespace XtreamIPTV.Views
                 vm.GetSeriesByActor(temp[1]);
                 BackButton.Visibility = Visibility.Visible;
                 scrollTime = DateTime.Now;
+            }
+        }
+
+        private void Hyperlink_RequestNavigate(object sender, System.Windows.Navigation.RequestNavigateEventArgs e)
+        {
+            var window = System.Windows.Window.GetWindow(this);
+            if (window?.DataContext is MainViewModel mvm)
+            {
+                Cursor = Cursors.Wait;
+
+                try
+                {
+                    var series = mvm.SeriesVM.SelectedSeries;
+                    if (series != null)
+                    mvm.NavigateToUri($"series-{series.Id}", series.Title, e.Uri);
+                }
+                catch (Exception ex)
+                {
+                    MessageBox.Show($"Error playing series: {ex.Message}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+                }
+                finally
+                {
+                    // Revert cursor to default after the operation is complete
+                    Cursor = Cursors.Arrow;
+                }
             }
         }
     }

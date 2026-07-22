@@ -23,7 +23,7 @@
         </Grid.Background>
 
         <!-- CATEGORY LIST -->
-        <ListBox Grid.RowSpan="2" Background="#2B373E" Foreground="White" FontSize="18" BorderThickness="0"
+        <ListBox Grid.RowSpan="2" Background="#1D252B" Foreground="White" FontSize="18" BorderThickness="0"
                  ItemsSource="{Binding Categories}" 
                  SelectedItem="{Binding SelectedCategory}"
                  SelectionChanged="ListBox_SelectionChanged"
@@ -34,7 +34,11 @@
         <Canvas Grid.Row="0" Grid.Column="1" x:Name="MovieInfoCanvas" Height="390" >
             <Image Source="{Binding SelectedSeries.Backdrop, TargetNullValue={x:Null}}" Height="420" Canvas.Right="20" Canvas.Top="-15"/>
             <StackPanel Width="800" HorizontalAlignment="Left" VerticalAlignment="Top" Canvas.Top="8" Canvas.Left="8">
-                <TextBlock Text="{Binding SelectedSeries.Title}" FontSize="25" FontWeight="Bold" TextWrapping="Wrap" Foreground="White" />
+                <TextBlock Margin="5,0,0,0">
+                    <Hyperlink NavigateUri="{Binding SelectedSeries.NavigaionUrl}" RequestNavigate="Hyperlink_RequestNavigate">
+                        <Run Text="{Binding SelectedSeries.Title}" FontSize="25" FontWeight="Bold" Foreground="White"/>
+                    </Hyperlink>
+                </TextBlock>
                 <TextBlock Text="{Binding SelectedSeries.ReleaseInfo}" FontSize="15" TextWrapping="Wrap" Foreground="White" Margin="0,5,0,0" />
             </StackPanel>
             <ScrollViewer Height="250" Width="820" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled" Canvas.Top="70" Canvas.Left="8" HorizontalAlignment="Center" VerticalAlignment="Top">

@@ -175,63 +175,69 @@ namespace XtreamIPTV.Services
 
         public async Task<IEnumerable<Season>> GetSeasonsAsync(Series series)
         {
-            var json = await _http.GetStringAsync(BuildUrl("get_series_info", $"series_id={series.Id}"));
-            using var doc = JsonDocument.Parse(json);
-            var root = doc.RootElement;
-
             var seasons = new List<Season>();
-
-            if (!root.TryGetProperty("seasons", out var seasonsElement) ||
-                !root.TryGetProperty("episodes", out var episodesElement) ||
-                !root.TryGetProperty("info", out var infoElement))
-                return seasons;
-
-            series.Genre = infoElement.TryGetProperty("genre", out var g) ? g.GetString() ?? "" : "";
-
-            foreach (var seasonJson in seasonsElement.EnumerateArray())
+            try
             {
-                var seasonNumber = seasonJson.GetProperty("season_number").GetInt32();
+                var json = await _http.GetStringAsync(BuildUrl("get_series_info", $"series_id={series.Id}"));
+                using var doc = JsonDocument.Parse(json);
+                var root = doc.RootElement;
 
-                var season = new Season { SeasonNumber = seasonNumber };
 
-                if (episodesElement.TryGetProperty(seasonNumber.ToString(), out var epsArray))
+                if (!root.TryGetProperty("seasons", out var seasonsElement) ||
+                    !root.TryGetProperty("episodes", out var episodesElement) ||
+                    !root.TryGetProperty("info", out var infoElement))
+                    return seasons;
+
+                series.Genre = infoElement.TryGetProperty("genre", out var g) ? g.GetString() ?? "" : "";
+
+                foreach (var seasonJson in seasonsElement.EnumerateArray())
                 {
-                    foreach (var ep in epsArray.EnumerateArray())
+                    var seasonNumber = seasonJson.GetProperty("season_number").GetInt32();
+
+                    var season = new Season { SeasonNumber = seasonNumber };
+
+                    if (episodesElement.TryGetProperty(seasonNumber.ToString(), out var epsArray))
                     {
-                        var title = ep.GetProperty("title").GetString() ?? "";
-                        var epNum = int.Parse(ep.GetProperty("episode_num").ToString());
-                        var id = int.Parse(ep.GetProperty("id").ToString());
-                        var info = ep.GetProperty("info");
-                        var cover_big = info.TryGetProperty("cover_big", out var cb) ? cb.ToString() ?? null : null;
-                        var plot = info.TryGetProperty("plot", out var p) ? p.ToString() ?? "" : "";
-                        var extension = ep.TryGetProperty("container_extension", out var e) ? e.ToString() ?? string.Empty : string.Empty;
-                        var url = $"{_baseUrl}/series/{_username}/{_password}/{id}.{extension}";
-
-                        if (string.IsNullOrEmpty(cover_big))
-                            cover_big = null;
-
-                        var sinfo = $"S{seasonNumber:00}E{epNum:00}";
-
-                        if (!title.StartsWith(sinfo))
-                            title = $"{sinfo} - {title}";
-
-                        season.Episodes.Add(new Episode
+                        foreach (var ep in epsArray.EnumerateArray())
                         {
-                            SeriesId = series.Id,
-                            SeasonId = seasonNumber,
-                            Title = title,
-                            EpisodeNumber = epNum,
-                            DirectSource = url,
-                            Poster = cover_big,
-                            Plot = plot,
-                            EpisodeId = id
-                        });
+                            var title = ep.GetProperty("title").GetString() ?? "";
+                            var epNum = int.Parse(ep.GetProperty("episode_num").ToString());
+                            var id = int.Parse(ep.GetProperty("id").ToString());
+                            var info = ep.GetProperty("info");
+                            var cover_big = info.TryGetProperty("cover_big", out var cb) ? cb.ToString() ?? null : null;
+                            var plot = info.TryGetProperty("plot", out var p) ? p.ToString() ?? "" : "";
+                            var extension = ep.TryGetProperty("container_extension", out var e) ? e.ToString() ?? string.Empty : string.Empty;
+                            var url = $"{_baseUrl}/series/{_username}/{_password}/{id}.{extension}";
+
+                            if (string.IsNullOrEmpty(cover_big))
+                                cover_big = null;
+
+                            var sinfo = $"S{seasonNumber:00}E{epNum:00}";
+
+                            if (!title.StartsWith(sinfo))
+                                title = $"{sinfo} - {title}";
+
+                            season.Episodes.Add(new Episode
+                            {
+                                SeriesId = series.Id,
+                                SeasonId = seasonNumber,
+                                Title = title,
+                                EpisodeNumber = epNum,
+                                DirectSource = url,
+                                Poster = cover_big,
+                                Plot = plot,
+                                EpisodeId = id
+                            });
+                        }
                     }
+
+                    seasons.Add(season);
                 }
-
-                seasons.Add(season);
             }
-
+            catch (Exception ex)
+            {
+                Debug.Print(ex.Message);
+            }
             return seasons;
         }
 
@@ -247,9 +253,16 @@ namespace XtreamIPTV.Services
                 var name = m.GetProperty("name").GetString() ?? "";
                 var poster = m.GetProperty("stream_icon").GetString() ?? "";
                 var plot = m.TryGetProperty("plot", out var p) ? p.GetString() ?? "" : "";
-                var rating = m.TryGetProperty("rating", out var r) ? double.Parse(r.ToString() != "undefined" ? r.ToString() : "0.0") : 0.0;
+                double rating = 0.0;
+                if (m.TryGetProperty("rating", out var r))
+                {
+                    if (double.TryParse(r.ToString(), out double parsedRating))
+                    {
+                        rating = parsedRating;
+                    }
+                }
                 var lang = m.TryGetProperty("lang", out var l) ? l.GetString() ?? "" : "";
-                var category_id = int.Parse(m.GetProperty("category_id").ToString());
+                int.TryParse(m.GetProperty("category_id").ToString(), out int category_id);
                 var direct_source = m.TryGetProperty("direct_source", out var ds) ? ds.ToString() ?? "" : "";
                 var releaseDate = DateTime.MinValue;
                 var added = m.TryGetProperty("added", out var t) ? long.Parse(t.ToString() ?? "0") : 0;
@@ -439,7 +452,7 @@ namespace XtreamIPTV.Services
                         if (DateTime.Now - lastWrite < TimeSpan.FromHours(8))
                         {
                             Debug.WriteLine($"Using cached data for action {action}");
-                            //return await File.ReadAllTextAsync(filename, cancellationToken);
+                            return await File.ReadAllTextAsync(filename, cancellationToken);
                         }
                     }
                 }
@@ -765,5 +778,62 @@ namespace XtreamIPTV.Services
                 return $" * {minutes}m";
         }
 
+        public async Task<IEnumerable<Category>> GetLiveCategoriesAsync()
+        {
+            var json = await GetAsync(BuildUrl("get_live_categories"));
+            var data = JsonSerializer.Deserialize<List<JsonElement>>(json) ?? [];
+
+            var list = new List<Category>();
+            foreach (var m in data)
+            {
+                var id = m.GetProperty("category_id").ToString() ?? "";
+                var name = m.GetProperty("category_name").ToString() ?? "";
+                var parentId = m.GetProperty("parent_id").ToString() ?? "";
+
+                list.Add(new Category
+                {
+                    Id = int.Parse(id),
+                    Name = name,
+                    ParentId = int.Parse(parentId)
+                });
+            }
+
+            return list;
+        }
+
+        public async Task<IEnumerable<Live>> GetLiveAsync()
+        {
+            var json = await GetAsync(BuildUrl("get_live_streams"));
+            var data = JsonSerializer.Deserialize<List<JsonElement>>(json) ?? [];
+
+            var list = new List<Live>();
+            foreach (var m in data)
+            {
+                int.TryParse(m.GetJsonString("num") ?? "0", out int num);
+                int.TryParse(m.GetJsonString("stream_id"), out int stream_id);
+
+                var category_id = m.GetJsonString("category_id").Trim();
+                var name = m.GetJsonString("name").Trim();
+                var stream_icon = m.GetJsonString("stream_icon").Trim();
+
+                var url = $"{_baseUrl}/live/{_username}/{_password}/{stream_id}.ts";
+
+                if (string.IsNullOrEmpty(name)) 
+                    continue;
+                list.Add(new Live
+                {
+                    Num = num,
+                    StreamId = stream_id,
+                    StreamIcon = stream_icon,
+                    Name = name,
+                    CategoryId = int.Parse(category_id),
+                    StreamUrl = url
+                });
+            }
+
+            return list;
+        }
+
     }
+
 }

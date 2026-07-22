@@ -2,8 +2,13 @@
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
     <StackPanel Background="#222" Orientation="Horizontal">
-        <Button Content="Search" Width="50"
+        <Button Content="Live" Width="50"
                 Margin="10,0,10,0"                
+                Command="{Binding DataContext.ShowLiveCommand,
+                                  RelativeSource={RelativeSource AncestorType=Window}}"/>
+
+        <Button Content="Search" Width="50"
+                Margin="0,0,10,0"                
                 Command="{Binding DataContext.ShowSearchCommand,
                                   RelativeSource={RelativeSource AncestorType=Window}}"/>
 
