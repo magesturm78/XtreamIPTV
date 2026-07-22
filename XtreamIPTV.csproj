@@ -6,6 +6,7 @@
 		<UseWPF>true</UseWPF>
 		<Nullable>enable</Nullable>
 		<SupportedOSPlatformVersion>7.0</SupportedOSPlatformVersion>
+<<<<<<< HEAD
 		<ApplicationIcon>icon.ico</ApplicationIcon>
 		<AssemblyVersion>1.0.0.1</AssemblyVersion>
 		<FileVersion>1.0.0.1</FileVersion>
@@ -33,6 +34,12 @@
 	  <None Update="settings.json">
 	    <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
 	  </None>
+=======
+	</PropertyGroup>
+
+	<ItemGroup>
+	  <PackageReference Include="Microsoft.EntityFrameworkCore.Sqlite" Version="10.0.5" />
+>>>>>>> 363c62477059520f3013ca59559e4972dc8805c4
 	</ItemGroup>
 
 </Project>

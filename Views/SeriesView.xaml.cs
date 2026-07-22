@@ -1,4 +1,5 @@
 ﻿using System;
+<<<<<<< HEAD
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Runtime.Intrinsics.Arm;
@@ -6,6 +7,11 @@ using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
+=======
+using System.Diagnostics;
+using System.Windows;
+using System.Windows.Controls;
+>>>>>>> 363c62477059520f3013ca59559e4972dc8805c4
 using System.Windows.Media;
 using XtreamIPTV.Models;
 using XtreamIPTV.ViewModels;
@@ -15,12 +21,16 @@ namespace XtreamIPTV.Views
     public partial class SeriesView : UserControl
     {
         private static DateTime scrollTime = DateTime.Now;
+<<<<<<< HEAD
         private bool isSimiliar = false;
+=======
+>>>>>>> 363c62477059520f3013ca59559e4972dc8805c4
 
         public SeriesView()
         {
             InitializeComponent();
 
+<<<<<<< HEAD
             List<string> decades = ["ALL"];
             for (int dec = 2020; dec >= 1900; dec -= 10)
             {
@@ -70,10 +80,13 @@ namespace XtreamIPTV.Views
             });
 
 
+=======
+>>>>>>> 363c62477059520f3013ca59559e4972dc8805c4
             Loaded += async (_, _) =>
             {
                 if (DataContext is SeriesViewModel vm)
                 {
+<<<<<<< HEAD
                     var window = System.Windows.Window.GetWindow(this);
                     if (window?.DataContext is MainViewModel mvm)
                     {
@@ -141,6 +154,30 @@ namespace XtreamIPTV.Views
             };
         }
 
+=======
+                    await vm.LoadCategoriesAsync();
+                    await vm.LoadSeriesAsync();
+                }
+            };
+
+            // Optional: double-click episode to play
+            //this.AddHandler(ListBox.MouseDoubleClickEvent, new System.Windows.Input.MouseButtonEventHandler(OnDoubleClick), true);
+        }
+
+        private void OnDoubleClick(object sender, System.Windows.Input.MouseButtonEventArgs e)
+        {
+            if (DataContext is not SeriesViewModel svm) return;
+
+            if (svm.SelectedEpisode == null) return;
+
+            // Bubble up to MainViewModel via DataContext of Window
+            var window = System.Windows.Window.GetWindow(this);
+            if (window?.DataContext is MainViewModel mvm)
+            {
+                mvm.PlayEpisode(svm.SelectedEpisode);
+            }
+        }
+>>>>>>> 363c62477059520f3013ca59559e4972dc8805c4
 
         private static ScrollViewer? GetScrollViewer(DependencyObject depObj)
         {
@@ -160,8 +197,11 @@ namespace XtreamIPTV.Views
             var scrollViewer = GetScrollViewer(SeriesListBox);
             scrollViewer?.ScrollToTop();
             ShowEpisodeControls(false);
+<<<<<<< HEAD
             if (DataContext is not SeriesViewModel vm) return;
             RemoveHistButton.Visibility = vm?.SelectedCategory?.Id == -3 ? Visibility.Visible : Visibility.Collapsed;
+=======
+>>>>>>> 363c62477059520f3013ca59559e4972dc8805c4
         }
 
         private void SeriesListBox_SelectionChanged(object sender, SelectionChangedEventArgs e)
@@ -169,9 +209,13 @@ namespace XtreamIPTV.Views
             if (DataContext is not SeriesViewModel vm) return;
 
             if (vm.SelectedSeries != null)
+<<<<<<< HEAD
             {
                 FavoriteButton.Content = vm.IsFavorite(vm.SelectedSeries) ? "*Favorite" : "Favorite";
             }
+=======
+                FavoriteButton.Content = vm.IsFavorite(vm.SelectedSeries) ? "*Favorite" : "Favorite";
+>>>>>>> 363c62477059520f3013ca59559e4972dc8805c4
         }
 
         private void SeriesListBox_ScrollChanged(object sender, ScrollChangedEventArgs e)
@@ -182,11 +226,20 @@ namespace XtreamIPTV.Views
                 {
                     if (DataContext is SeriesViewModel vm)
                     {
+<<<<<<< HEAD
                         if (vm.FilteredSeriesCount <= vm.FilteredSeries.Count) return;
+=======
+                        if (vm.AllSeries.Count <= vm.FilteredSeries.Count) return;
+>>>>>>> 363c62477059520f3013ca59559e4972dc8805c4
                         if ((DateTime.Now - scrollTime).TotalMilliseconds < 50) return; // prevent multiple triggers in short time
                         Debug.WriteLine("Loading more data!");
 
                         vm.ScrollSeries();
+<<<<<<< HEAD
+=======
+                        var window = Window.GetWindow(this);
+                        window.Title = $"XtreamIPTV Player: Series {vm.FilteredSeries.Count}";
+>>>>>>> 363c62477059520f3013ca59559e4972dc8805c4
                     }
                     scrollTime = DateTime.Now;
                 }
@@ -209,6 +262,7 @@ namespace XtreamIPTV.Views
                 //Series Buttons
                 SeriesListBox.Visibility = Visibility.Hidden;
                 FavoriteButton.Visibility = Visibility.Hidden;
+<<<<<<< HEAD
                 SimiliarButton.Visibility = Visibility.Hidden;
                 //Episodes Buttons
                 SeasonsScrollView.Visibility = Visibility.Visible;
@@ -218,12 +272,19 @@ namespace XtreamIPTV.Views
                 episodePlot.Visibility = Visibility.Visible;
                 episodeTitle.Visibility = Visibility.Visible;
                 episodeReleaseDate.Visibility = Visibility.Visible;
+=======
+                //Episodes Buttons
+                SeasonsListBox.Visibility = Visibility.Visible;
+                PlayButton.Visibility = Visibility.Visible;
+                BackButton.Visibility = Visibility.Visible;
+>>>>>>> 363c62477059520f3013ca59559e4972dc8805c4
             }
             else
             {
                 //Series Buttons
                 SeriesListBox.Visibility = Visibility.Visible;
                 FavoriteButton.Visibility = Visibility.Visible;
+<<<<<<< HEAD
                 SimiliarButton.Visibility = Visibility.Visible;
                 //Episodes Buttons
                 SeasonsScrollView.Visibility = Visibility.Hidden;
@@ -233,12 +294,19 @@ namespace XtreamIPTV.Views
                 episodeTitle.Visibility = Visibility.Hidden;
                 episodePlot.Visibility = Visibility.Hidden;
                 episodeReleaseDate.Visibility = Visibility.Hidden;
+=======
+                //Episodes Buttons
+                SeasonsListBox.Visibility = Visibility.Hidden;
+                PlayButton.Visibility = Visibility.Hidden;
+                BackButton.Visibility = Visibility.Hidden;
+>>>>>>> 363c62477059520f3013ca59559e4972dc8805c4
             }
         }
 
         private void Episodes_SelectionChanged(object sender, SelectionChangedEventArgs e)
         {
             if (DataContext is not SeriesViewModel svm) return;
+<<<<<<< HEAD
             if (sender is not ListBox seasonLB) return;
 
             svm.SelectedEpisode = (sender as ListBox)?.SelectedItem as Episode;
@@ -252,6 +320,14 @@ namespace XtreamIPTV.Views
         }
 
         private async void PlayButton_Click(object sender, RoutedEventArgs e)
+=======
+
+            svm.SelectedEpisode = (sender as ListBox)?.SelectedItem as Episode;
+            if (svm.SelectedEpisode == null) return;
+        }
+
+        private void PlayButton_Click(object sender, RoutedEventArgs e)
+>>>>>>> 363c62477059520f3013ca59559e4972dc8805c4
         {
             if (DataContext is not SeriesViewModel svm) return;
 
@@ -261,6 +337,7 @@ namespace XtreamIPTV.Views
             var window = System.Windows.Window.GetWindow(this);
             if (window?.DataContext is MainViewModel mvm)
             {
+<<<<<<< HEAD
                 Cursor = Cursors.Wait;
 
                 try
@@ -310,32 +387,61 @@ namespace XtreamIPTV.Views
             ShowEpisodeControls(false);
             //seriesvm.Sort = seriesvm.Sort;
             BackButton.Visibility = Visibility.Hidden;
+=======
+                mvm.PlayEpisode(svm.SelectedEpisode);
+            }
+
+        }
+
+        private void BackButton_Click(object sender, RoutedEventArgs e)
+        {
+            ShowEpisodeControls(false);
+
+            if (DataContext is not SeriesViewModel svm) return;
+
+            svm.SelectedEpisode = null;
+            svm.SelectedSeason = null;
+
+>>>>>>> 363c62477059520f3013ca59559e4972dc8805c4
         }
 
         private void DefaultSort_Click(object sender, RoutedEventArgs e)
         {
+<<<<<<< HEAD
             UpdateSort(Sort.Default);
+=======
+            UpdateSort(Sort.None);
+>>>>>>> 363c62477059520f3013ca59559e4972dc8805c4
         }
 
         private void DateSort_Click(object sender, RoutedEventArgs e)
         {
+<<<<<<< HEAD
             UpdateSort(Sort.Date);
+=======
+            UpdateSort(Sort.ReleaseDate);
+>>>>>>> 363c62477059520f3013ca59559e4972dc8805c4
         }
 
         private void PopularitySort_Click(object sender, RoutedEventArgs e)
         {
+<<<<<<< HEAD
             UpdateSort(Sort.Popularity);
         }
 
         private void NameSort_Click(object sender, RoutedEventArgs e)
         {
             UpdateSort(Sort.Name);
+=======
+            UpdateSort(Sort.Rating);
+>>>>>>> 363c62477059520f3013ca59559e4972dc8805c4
         }
 
         private void UpdateSort(Sort order)
         {
             var scrollViewer = GetScrollViewer(SeriesListBox);
             scrollViewer?.ScrollToTop();
+<<<<<<< HEAD
             SortTogglePopupButton.IsChecked = false;
             if (DataContext is not SeriesViewModel movievm) return;
             movievm.Sort = order;
@@ -347,6 +453,12 @@ namespace XtreamIPTV.Views
                 else
                     cbtn.FontWeight = FontWeights.Normal;
             }
+=======
+            TogglePopupButton.IsChecked = false;
+            if (DataContext is not SeriesViewModel movievm) return;
+            movievm.Sort = order;
+
+>>>>>>> 363c62477059520f3013ca59559e4972dc8805c4
         }
 
         private void FavoriteButton_Click(object sender, RoutedEventArgs e)
@@ -356,6 +468,7 @@ namespace XtreamIPTV.Views
             if (vm.SelectedSeries != null)
                 FavoriteButton.Content = vm.IsFavorite(vm.SelectedSeries) ? "*Favorite" : "Favorite";
         }
+<<<<<<< HEAD
 
         private void RemoveHistButton_Click(object sender, RoutedEventArgs e)
         {
@@ -434,5 +547,7 @@ namespace XtreamIPTV.Views
                 }
             }
         }
+=======
+>>>>>>> 363c62477059520f3013ca59559e4972dc8805c4
     }
 }

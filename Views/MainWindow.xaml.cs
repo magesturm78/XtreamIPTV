@@ -1,5 +1,8 @@
 ﻿using System.Windows;
+<<<<<<< HEAD
 using XtreamIPTV.ViewModels;
+=======
+>>>>>>> 363c62477059520f3013ca59559e4972dc8805c4
 
 namespace XtreamIPTV.Views
 {
@@ -9,6 +12,7 @@ namespace XtreamIPTV.Views
         {
             InitializeComponent();
         }
+<<<<<<< HEAD
 
         private void Window_MouseMove(object sender, System.Windows.Input.MouseEventArgs e)
         {
@@ -73,5 +77,7 @@ namespace XtreamIPTV.Views
                 this.WindowStyle = WindowStyle.SingleBorderWindow;
             }
         }
+=======
+>>>>>>> 363c62477059520f3013ca59559e4972dc8805c4
     }
 }

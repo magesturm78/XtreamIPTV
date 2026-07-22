@@ -1,11 +1,15 @@
 ﻿<UserControl x:Class="XtreamIPTV.Views.SeriesView"
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+<<<<<<< HEAD
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml" 
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008" 
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" 
              mc:Ignorable="d" 
              x:Name="SeriesViewUC"
              d:DesignHeight="720" d:DesignWidth="1280">
+=======
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+>>>>>>> 363c62477059520f3013ca59559e4972dc8805c4
     <Grid Margin="0">
         <Grid.RowDefinitions>
             <RowDefinition Height="420"/>
@@ -23,16 +27,26 @@
         </Grid.Background>
 
         <!-- CATEGORY LIST -->
+<<<<<<< HEAD
         <ListBox Grid.RowSpan="2" Background="#1D252B" Foreground="White" FontSize="18" BorderThickness="0"
                  ItemsSource="{Binding Categories}" 
                  SelectedItem="{Binding SelectedCategory}"
                  SelectionChanged="ListBox_SelectionChanged"
                  DisplayMemberPath="Name" ScrollViewer.HorizontalScrollBarVisibility="Hidden"
                  Height="{Binding ElementName=LayoutRoot, Path=ActualHeight, TargetNullValue=100}"/>
+=======
+        <ListBox Grid.RowSpan="2" Background="#2B373E" Foreground="White" FontSize="18" BorderThickness="0"
+                 ItemsSource="{Binding Categories}" 
+                 SelectedItem="{Binding SelectedCategory}"
+                 SelectionChanged="ListBox_SelectionChanged"
+                 DisplayMemberPath="Name" 
+                 Height="{Binding ElementName=LayoutRoot, Path=ActualHeight}"/>
+>>>>>>> 363c62477059520f3013ca59559e4972dc8805c4
 
         <!-- SERIES DETAILS -->
         <Canvas Grid.Row="0" Grid.Column="1" x:Name="MovieInfoCanvas" Height="390" >
             <Image Source="{Binding SelectedSeries.Backdrop, TargetNullValue={x:Null}}" Height="420" Canvas.Right="20" Canvas.Top="-15"/>
+<<<<<<< HEAD
             <StackPanel Width="800" HorizontalAlignment="Left" VerticalAlignment="Top" Canvas.Top="8" Canvas.Left="8">
                 <TextBlock Margin="5,0,0,0">
                     <Hyperlink NavigateUri="{Binding SelectedSeries.NavigaionUrl}" RequestNavigate="Hyperlink_RequestNavigate">
@@ -187,6 +201,40 @@
             <TextBlock Text="{Binding FilteredSeries.Count, StringFormat={}{0}}" FontSize="20" Margin="10,0,0,0" Foreground="White"/>
             <TextBlock Text="{Binding FilteredSeriesCount, StringFormat={} / {0}}" FontSize="20" Margin="0,0,30,0" Foreground="White"/>
         </StackPanel>
+=======
+            <StackPanel Width="800" HorizontalAlignment="Left" VerticalAlignment="Top" >
+                <TextBlock Text="{Binding SelectedSeries.Title}" FontSize="25" FontWeight="Bold" TextWrapping="Wrap" Foreground="White" />
+                <TextBlock Text="{Binding SelectedSeries.ReleaseInfo}" FontSize="15" TextWrapping="Wrap" Foreground="White" Margin="0,5,0,0" />
+                <TextBlock Text="{Binding SelectedSeries.Plot}" FontSize="20" TextWrapping="Wrap" Foreground="White" Margin="0,5,0,0" />
+                <TextBlock Text="{Binding SelectedEpisode.EpisodeId}" FontSize="15" TextWrapping="Wrap" Foreground="White" Margin="0,5,0,0" />
+                <TextBlock Text="{Binding SelectedEpisode.Plot}" FontSize="20" TextWrapping="Wrap" Foreground="White" Margin="0,5,0,0" />
+            </StackPanel>
+            <Button x:Name="EpisodesButton" Content="Episodes" Width="150" Height="50" VerticalAlignment="Bottom" HorizontalAlignment="Left" Margin="5" 
+                Background="LightBlue" FontWeight="Bold" FontSize="25" Canvas.Bottom="5" Canvas.Left="5" Click="EpisodesButton_Click" />
+            <Button x:Name="PlayButton" Content="Play" Width="150" Height="50" VerticalAlignment="Bottom" HorizontalAlignment="Left" Margin="5" 
+                Background="LightBlue" FontWeight="Bold" FontSize="25" Canvas.Bottom="5" Canvas.Left="5" Click="PlayButton_Click"/>
+            <Button x:Name="BackButton" Content="Back" Width="150" Height="50" VerticalAlignment="Bottom" HorizontalAlignment="Left" Margin="5" 
+                Background="LightBlue" FontWeight="Bold" FontSize="25" Canvas.Bottom="5" Canvas.Left="175" Click="BackButton_Click"/>
+            <Button x:Name="FavoriteButton" Content="Favorite" Width="150" Height="50" VerticalAlignment="Bottom" HorizontalAlignment="Left" Margin="5" 
+                Background="LightBlue" FontWeight="Bold" FontSize="25" Canvas.Bottom="5" Canvas.Left="175" Click="FavoriteButton_Click"/>
+
+            <ToggleButton Name="TogglePopupButton" Content="..." Height="20" Width="30" Canvas.Top="-14" Canvas.Left="0"/>
+
+            <Popup IsOpen="{Binding IsChecked, ElementName=TogglePopupButton}"
+                           PlacementTarget="{Binding ElementName=TogglePopupButton}"
+                           Placement="Bottom"
+                           AllowsTransparency="True" 
+                           StaysOpen="False">
+                <Border BorderThickness="1" Background="LightBlue" Padding="0">
+                    <StackPanel>
+                        <Button Content="Sort By Default" Click="DefaultSort_Click"/>
+                        <Button Content="Sort By Popularity" Click="PopularitySort_Click"/>
+                        <Button Content="Sort By Date" Click="DateSort_Click"/>
+                    </StackPanel>
+                </Border>
+            </Popup>
+        </Canvas>
+>>>>>>> 363c62477059520f3013ca59559e4972dc8805c4
 
         <!-- Series list -->
         <ListBox x:Name="SeriesListBox"  Grid.Row="1" Grid.Column="1" 
@@ -200,6 +248,7 @@
             </ListBox.ItemsPanel>
             <ListBox.ItemTemplate>
                 <DataTemplate>
+<<<<<<< HEAD
                     <Border BorderBrush="Black"  BorderThickness="4" Margin="0" Padding="0" CornerRadius="10" Background="Transparent">
                         <StackPanel Orientation="Vertical" VerticalAlignment="Top" Background="Transparent" >
                             <Canvas Height="230" Width="152">
@@ -216,6 +265,16 @@
                                 <!--<TextBlock Canvas.Left="0" Canvas.Top="0" Text="{Binding Path=Similiar}" Foreground="Yellow" FontSize="25" Background="#5F000000"/>-->
                             </Canvas>
                             <TextBlock x:Name="titleText" TextWrapping="Wrap" Width="148" Height="50" Text="{Binding Path=Title}" FontSize="15"/>
+=======
+                    <Border BorderBrush="Black"  BorderThickness="5" Margin="0" Padding="0" CornerRadius="2" Background="Transparent">
+                        <StackPanel Orientation="Vertical" VerticalAlignment="Top" Background="Transparent" >
+                            <Canvas Height="228" Width="150">
+                                <Image Width="150" Source="{Binding Path=Poster, TargetNullValue={x:Null}}" VerticalAlignment="Top" />
+                                <TextBlock Canvas.Left="0" Canvas.Top="198" Text="{Binding Path=Rating}" FontSize="20" Background="#7F000000"/>
+                                <!--<TextBlock Canvas.Left="0" Canvas.Top="0" Text="{Binding Path=Similiar}" Foreground="Yellow" FontSize="25" Background="#5F000000"/>-->
+                            </Canvas>
+                            <TextBlock x:Name="titleText" TextWrapping="Wrap" Width="150" Height="50" Text="{Binding Path=Title}" FontSize="15"/>
+>>>>>>> 363c62477059520f3013ca59559e4972dc8805c4
                         </StackPanel>
                     </Border>
                 </DataTemplate>
@@ -239,6 +298,7 @@
         </ListBox>
 
         <!-- Seasons -->
+<<<<<<< HEAD
         <ScrollViewer x:Name="SeasonsScrollView" Grid.Row="1" Grid.Column="1" Visibility="Visible" BorderThickness="0" >
             <ItemsControl x:Name="SeasonsItemControl" ItemsSource="{Binding Path=SelectedSeries.Seasons}" BorderThickness="0" >
                 <ItemsControl.ItemTemplate>
@@ -290,6 +350,58 @@
                     </ItemsPanelTemplate>
                 </ItemsControl.ItemsPanel>
             </ItemsControl>
+=======
+        <ScrollViewer x:Name="SeasonsListBox" Grid.Row="1" Grid.Column="1" Visibility="Visible" BorderThickness="0" >
+        <ItemsControl  ItemsSource="{Binding Path=SelectedSeries.Seasons}" BorderThickness="0" >
+            <ItemsControl.ItemTemplate>
+                <DataTemplate>
+                    <StackPanel Background="Transparent">
+                        <TextBlock Text="{Binding SeasonId}" FontWeight="Bold" Margin="0,5,0,2" Foreground="White" FontSize="20"/>
+                        <ListBox x:Name="EpisodesListBox" ItemsSource="{Binding Episodes}" 
+                                 SelectionChanged="Episodes_SelectionChanged"
+                                 Background="Transparent">
+                            <ListBox.ItemsPanel>
+                                <ItemsPanelTemplate>
+                                    <WrapPanel/>
+                                </ItemsPanelTemplate>
+                            </ListBox.ItemsPanel>
+                            <ListBox.ItemTemplate>
+                                <DataTemplate>
+                                    <Border BorderBrush="Black" BorderThickness="5" Margin="0" Padding="0" CornerRadius="2" Background="Transparent">
+                                        <StackPanel Orientation="Vertical" VerticalAlignment="Top" Background="Transparent">
+                                            <Image Width="225" Source="{Binding Path=Poster, TargetNullValue={x:Null}}" VerticalAlignment="Top" />
+                                            <TextBlock x:Name="titleText" TextWrapping="Wrap" Width="225" Height="50" Text="{Binding Path=EpisodeId}" FontSize="15" HorizontalAlignment="Left"/>
+                                        </StackPanel>
+                                    </Border>
+                                </DataTemplate>
+                            </ListBox.ItemTemplate>
+                            <ListBox.ItemContainerStyle>
+                                <Style TargetType="ListBoxItem">
+                                    <Style.Triggers>
+                                        <Trigger Property="IsSelected" Value="True" >
+                                            <Setter Property="BorderBrush" Value="Black" />
+                                            <Setter Property="Background" Value="Pink" />
+                                            <Setter Property="Foreground" Value="Black" />
+                                        </Trigger>
+                                        <Trigger Property="IsSelected" Value="False" >
+                                            <Setter Property="BorderBrush" Value="White" />
+                                            <Setter Property="Background" Value="#2B373E" />
+                                            <Setter Property="Foreground" Value="White" />
+                                        </Trigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </ListBox.ItemContainerStyle>
+                        </ListBox>
+                    </StackPanel>
+                </DataTemplate>
+            </ItemsControl.ItemTemplate>
+            <ItemsControl.ItemsPanel>
+                <ItemsPanelTemplate>
+                    <WrapPanel/>
+                </ItemsPanelTemplate>
+            </ItemsControl.ItemsPanel>
+        </ItemsControl>
+>>>>>>> 363c62477059520f3013ca59559e4972dc8805c4
         </ScrollViewer>
         <!--<ListBox x:Name="SeasonsListBox"  Grid.Row="1" Grid.Column="1" Visibility="Visible" BorderThickness="0"
                  ItemsSource="{Binding SelectedSeries.Seasons}" 
@@ -297,9 +409,13 @@
                  Background="Transparent">
             <ListBox.ItemTemplate>
                 <DataTemplate>
+<<<<<<< HEAD
                     -->
         <!-- Episodes -->
         <!--
+=======
+                    --><!-- Episodes --><!--
+>>>>>>> 363c62477059520f3013ca59559e4972dc8805c4
                     <StackPanel Background="Transparent">
                         <TextBlock Text="{Binding SeasonId}" FontWeight="Bold" Margin="0,5,0,2" Foreground="White" FontSize="20"/>
                         <ListBox x:Name="EpisodesListBox" ItemsSource="{Binding Episodes}" 

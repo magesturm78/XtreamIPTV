@@ -16,7 +16,10 @@ namespace XtreamIPTV.ViewModels
         private readonly ContinueWatchingService _continue;
 
         private string _errorMessage = "";
+<<<<<<< HEAD
         private string _title = "";
+=======
+>>>>>>> 363c62477059520f3013ca59559e4972dc8805c4
 
         public string ErrorMessage 
         { 
@@ -46,6 +49,7 @@ namespace XtreamIPTV.ViewModels
             }
         }
 
+<<<<<<< HEAD
         public string CurrentEpisodeId
         {
             get => _currentEpisodeId;
@@ -72,13 +76,23 @@ namespace XtreamIPTV.ViewModels
         {
             _currentEpisodeId = episodeId;
             Title = title;
+=======
+        public double StartPositionSeconds => _continue.GetProgress(_currentEpisodeId);
+
+        public void Play(string episodeId, string url)
+        {
+            _currentEpisodeId = episodeId;
+>>>>>>> 363c62477059520f3013ca59559e4972dc8805c4
             CurrentStreamUrl = url;
         }
 
         public void SavePosition(double seconds)
         {
+<<<<<<< HEAD
             if (seconds == 0)
                 return;
+=======
+>>>>>>> 363c62477059520f3013ca59559e4972dc8805c4
             if (!string.IsNullOrEmpty(_currentEpisodeId))
                 _continue.SaveProgress(_currentEpisodeId, seconds);
         }

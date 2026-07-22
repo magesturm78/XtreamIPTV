@@ -8,23 +8,35 @@ namespace XtreamIPTV.Services
     {
         private const string FilePath = "continue.json";
 
+<<<<<<< HEAD
         public OrderedDictionary<string, double> Progress { get; private set; } = new();
+=======
+        public Dictionary<string, double> Progress { get; private set; } = new();
+>>>>>>> 363c62477059520f3013ca59559e4972dc8805c4
 
         public ContinueWatchingService()
         {
             if (File.Exists(FilePath))
             {
                 var json = File.ReadAllText(FilePath);
+<<<<<<< HEAD
                 Progress = JsonSerializer.Deserialize<OrderedDictionary<string, double>>(json) ?? new();
+=======
+                Progress = JsonSerializer.Deserialize<Dictionary<string, double>>(json) ?? new();
+>>>>>>> 363c62477059520f3013ca59559e4972dc8805c4
             }
         }
 
         public void SaveProgress(string episodeId, double seconds)
         {
+<<<<<<< HEAD
             if (Progress.ContainsKey(episodeId) && Progress[episodeId] == seconds) 
                 return;
             Progress.Remove(episodeId);
             Progress.Add(episodeId, seconds);
+=======
+            Progress[episodeId] = seconds;
+>>>>>>> 363c62477059520f3013ca59559e4972dc8805c4
             File.WriteAllText(FilePath, JsonSerializer.Serialize(Progress));
         }
 
@@ -32,6 +44,7 @@ namespace XtreamIPTV.Services
         {
             return Progress.TryGetValue(episodeId, out var sec) ? sec : 0;
         }
+<<<<<<< HEAD
 
         public List<string> GetMovieProgress()
         {
@@ -53,5 +66,7 @@ namespace XtreamIPTV.Services
             Progress.Remove(episodeId);
             File.WriteAllText(FilePath, JsonSerializer.Serialize(Progress));
         }
+=======
+>>>>>>> 363c62477059520f3013ca59559e4972dc8805c4
     }
 }

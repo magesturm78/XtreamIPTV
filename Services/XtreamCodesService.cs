@@ -1,12 +1,18 @@
 ﻿using System;
 using System.Collections.Generic;
+<<<<<<< HEAD
 using System.Configuration;
+=======
+>>>>>>> 363c62477059520f3013ca59559e4972dc8805c4
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Net.Http;
+<<<<<<< HEAD
 using System.Net.Http.Headers;
 using System.Reflection;
+=======
+>>>>>>> 363c62477059520f3013ca59559e4972dc8805c4
 using System.Text.Json;
 using System.Text.Json.Nodes;
 using System.Threading;
@@ -17,6 +23,7 @@ namespace XtreamIPTV.Services
 {
     public class XtreamCodesService : IIPTVService
     {
+<<<<<<< HEAD
         private bool CreateNewMoviesFromSimiliar = false;
         private const string FilePath = "settings.json";
         private readonly HttpClient _http = new();
@@ -55,6 +62,13 @@ namespace XtreamIPTV.Services
                     {"Persian", "fa"},
                     {"Finnish", "fi"},
                 };
+=======
+        private const string FilePath = "settings.json";
+        private readonly HttpClient _http = new();
+        private string _baseUrl = "http://10.0.0.100:9000";
+        private string _username = "12";
+        private string _password = "12";
+>>>>>>> 363c62477059520f3013ca59559e4972dc8805c4
 
         public XtreamCodesService()
         {
@@ -103,7 +117,11 @@ namespace XtreamIPTV.Services
             return url;
         }
 
+<<<<<<< HEAD
         public async Task<IEnumerable<Series>> GetSeriesAsync()
+=======
+        public async Task<List<Series>> GetSeriesAsync()
+>>>>>>> 363c62477059520f3013ca59559e4972dc8805c4
         {
             var json = await GetAsync(BuildUrl("get_series"));
             var data = JsonSerializer.Deserialize<List<JsonElement>>(json) ?? [];
@@ -112,10 +130,17 @@ namespace XtreamIPTV.Services
 
             foreach (var s in data)
             {
+<<<<<<< HEAD
                 var id = int.Parse(s.GetProperty("series_id").ToString());
                 var name = s.GetProperty("name").GetString() ?? "";
                 var plot = s.TryGetProperty("plot", out var p) ? p.GetString() ?? "" : "";
                 var rating = s.TryGetProperty("rating", out var r) ? double.Parse(r.ToString() != "undefined" ? r.ToString() : "0.0") : 0.0;
+=======
+                var id = s.GetProperty("series_id").GetInt32();
+                var name = s.GetProperty("name").GetString() ?? "";
+                var plot = s.TryGetProperty("plot", out var p) ? p.GetString() ?? "" : "";
+                var rating = s.TryGetProperty("rating", out var r) ? r.GetDouble() : 0.0;
+>>>>>>> 363c62477059520f3013ca59559e4972dc8805c4
                 var lang = s.TryGetProperty("lang", out var l) ? l.GetString() ?? "" : "";
                 var cover = s.TryGetProperty("cover", out var m) ? m.GetString() ?? "" : "";
                 var backdrop_path = string.Empty;
@@ -140,6 +165,7 @@ namespace XtreamIPTV.Services
                 }
                 var category_id = int.Parse(s.GetProperty("category_id").ToString());
 
+<<<<<<< HEAD
                 if (cover != null && !cover.StartsWith("http"))
                     cover = null;
                 if (cover != null && cover == "https://www.freeiconspng.com/thumbs/movies-folder-icon/hd-movies-folder-popcorn-images-20.png")
@@ -147,6 +173,8 @@ namespace XtreamIPTV.Services
                 if (string.IsNullOrEmpty(backdrop_path))
                     backdrop_path = cover;
 
+=======
+>>>>>>> 363c62477059520f3013ca59559e4972dc8805c4
                 var releaseDate = DateTime.MinValue;
 
                 if (s.TryGetProperty("releaseDate", out var rd) && rd.ValueKind == JsonValueKind.String)
@@ -161,7 +189,11 @@ namespace XtreamIPTV.Services
                     Title = name,
                     Plot = plot,
                     Rating = rating,
+<<<<<<< HEAD
                     Languages = [lang],
+=======
+                    Language = lang,
+>>>>>>> 363c62477059520f3013ca59559e4972dc8805c4
                     CategoryId = category_id,
                     Poster = cover,
                     Backdrop = backdrop_path,
@@ -173,6 +205,7 @@ namespace XtreamIPTV.Services
             return list;
         }
 
+<<<<<<< HEAD
         public async Task<IEnumerable<Season>> GetSeasonsAsync(Series series)
         {
             var seasons = new List<Season>();
@@ -242,6 +275,63 @@ namespace XtreamIPTV.Services
         }
 
         public async Task<IEnumerable<Movie>> GetMoviesAsync()
+=======
+        public async Task<List<Season>> GetSeasonsAsync(Series series)
+        {
+            var json = await _http.GetStringAsync(BuildUrl("get_series_info", $"series_id={series.Id}"));
+            using var doc = JsonDocument.Parse(json);
+            var root = doc.RootElement;
+
+            var seasons = new List<Season>();
+
+            if (!root.TryGetProperty("seasons", out var seasonsElement) ||
+                !root.TryGetProperty("episodes", out var episodesElement) ||
+                !root.TryGetProperty("info", out var infoElement))
+                return seasons;
+
+            series.Genre = infoElement.TryGetProperty("genre", out var g) ? g.GetString() ?? "" : "";
+
+            foreach (var seasonJson in seasonsElement.EnumerateArray())
+            {
+                var seasonNumber = seasonJson.GetProperty("season_number").GetInt32();
+
+                var season = new Season { SeasonNumber = seasonNumber };
+
+                if (episodesElement.TryGetProperty(seasonNumber.ToString(), out var epsArray))
+                {
+                    foreach (var ep in epsArray.EnumerateArray())
+                    {
+                        var title = ep.GetProperty("title").GetString() ?? "";
+                        var epNum = ep.GetProperty("episode_num").GetInt32();
+                        var id = ep.GetProperty("id").GetInt32();
+                        var info = ep.GetProperty("info");
+                        var cover_big = info.TryGetProperty("cover_big", out var cb) ? cb.GetString() ?? null : null;
+                        var plot = info.TryGetProperty("plot", out var p) ? p.GetString() ?? "" : "";
+                        var url = $"{_baseUrl}/series/{_username}/{_password}/{id}.mp4";
+
+                        if (string.IsNullOrEmpty(cover_big))
+                            cover_big = null;
+
+                        season.Episodes.Add(new Episode
+                        {
+                            Title = title,
+                            EpisodeNumber = epNum,
+                            StreamUrl = url,
+                            Poster = cover_big,
+                            Plot = plot,
+                            EpisodeId = $"S{seasonNumber:00}E{epNum:00} - {title}"
+                        });
+                    }
+                }
+
+                seasons.Add(season);
+            }
+
+            return seasons;
+        }
+
+        public async Task<List<Movie>> GetMoviesAsync()
+>>>>>>> 363c62477059520f3013ca59559e4972dc8805c4
         {
             var json = await GetAsync(BuildUrl("get_vod_streams"));
             var data = JsonSerializer.Deserialize<List<JsonElement>>(json) ?? [];
@@ -249,6 +339,7 @@ namespace XtreamIPTV.Services
             var list = new List<Movie>();
             foreach (var m in data)
             {
+<<<<<<< HEAD
                 var id = int.Parse(m.GetProperty("stream_id").ToString());
                 var name = m.GetProperty("name").GetString() ?? "";
                 var poster = m.GetProperty("stream_icon").GetString() ?? "";
@@ -295,10 +386,23 @@ namespace XtreamIPTV.Services
                     poster = null;
                 if (string.IsNullOrEmpty(backdrop_path))
                     backdrop_path = poster;
+=======
+                var id = m.GetProperty("stream_id").GetInt32();
+                var name = m.GetProperty("name").GetString() ?? "";
+                var poster = m.GetProperty("stream_icon").GetString() ?? "";
+                var plot = m.TryGetProperty("plot", out var p) ? p.GetString() ?? "" : "";
+                var rating = m.TryGetProperty("rating", out var r) ? r.GetDouble() : 0.0;
+                var lang = m.TryGetProperty("lang", out var l) ? l.GetString() ?? "" : "";
+                var category_id = m.GetProperty("category_id").GetInt32();
+                var direct_source = m.TryGetProperty("direct_source", out var ds) ? ds.ToString() ?? "" : "";
+                var releaseDate = DateTime.MinValue;
+                var added = m.TryGetProperty("added", out var t) ? long.Parse(t.GetString() ?? "0") : 0;
+>>>>>>> 363c62477059520f3013ca59559e4972dc8805c4
 
                 if (m.TryGetProperty("releasedate", out var rd) && rd.ValueKind == JsonValueKind.String)
                 {
                     DateTime.TryParse(rd.GetString(), out releaseDate);
+<<<<<<< HEAD
                 } else
                 {
                     // If releasedate is not available, use the 'added' timestamp to estimate the release date
@@ -308,6 +412,8 @@ namespace XtreamIPTV.Services
                         DateTime epoch = new DateTime(1970, 1, 1, 0, 0, 0, DateTimeKind.Utc);
                         releaseDate = epoch.AddSeconds(added).ToLocalTime();
                     }
+=======
+>>>>>>> 363c62477059520f3013ca59559e4972dc8805c4
                 }
 
                 var url = !string.IsNullOrEmpty(direct_source) ? direct_source : $"{_baseUrl}/movie/{_username}/{_password}/{id}.mp4";
@@ -315,16 +421,26 @@ namespace XtreamIPTV.Services
                 list.Add(new Movie
                 {
                     Id = id,
+<<<<<<< HEAD
                     NavigaionUrl = "https://www.themoviedb.org/movie/" + id,
+=======
+>>>>>>> 363c62477059520f3013ca59559e4972dc8805c4
                     Title = name,
                     Plot = plot,
                     Poster = poster,
                     Rating = rating,
+<<<<<<< HEAD
                     Languages = [lang],
                     StreamUrl = url,
                     CategoryId = category_id,
                     ReleaseDate = releaseDate,
                     Backdrop = backdrop_path,
+=======
+                    Language = lang,
+                    StreamUrl = url,
+                    CategoryId = category_id,
+                    ReleaseDate = releaseDate,
+>>>>>>> 363c62477059520f3013ca59559e4972dc8805c4
                     Added = added
                 });
             }
@@ -332,7 +448,11 @@ namespace XtreamIPTV.Services
             return list;
         }
 
+<<<<<<< HEAD
         public async Task<IEnumerable<Category>> GetMovieCategoriesAsync()
+=======
+        public async Task<List<Category>> GetMovieCategoriesAsync()
+>>>>>>> 363c62477059520f3013ca59559e4972dc8805c4
         {
             var json = await GetAsync(BuildUrl("get_vod_categories"));
             var data = JsonSerializer.Deserialize<List<JsonElement>>(json) ?? [];
@@ -355,7 +475,11 @@ namespace XtreamIPTV.Services
             return list;
         }
 
+<<<<<<< HEAD
         public async Task<IEnumerable<Category>> GetSeriesCategoriesAsync()
+=======
+        public async Task<List<Category>> GetSeriesCategoriesAsync()
+>>>>>>> 363c62477059520f3013ca59559e4972dc8805c4
         {
             var json = await GetAsync(BuildUrl("get_series_categories"));
             var data = JsonSerializer.Deserialize<List<JsonElement>>(json) ?? [];
@@ -384,10 +508,15 @@ namespace XtreamIPTV.Services
             var data = JsonSerializer.Deserialize<JsonElement>(json);
 
             var info = data.GetProperty("info");
+<<<<<<< HEAD
+=======
+            var backdrop = info.TryGetProperty("backdrop_path", out JsonElement bp) ? bp.GetString() : "";
+>>>>>>> 363c62477059520f3013ca59559e4972dc8805c4
             var genre = info.GetProperty("genre").GetString() ?? "";
             var cast = info.GetProperty("cast").GetString() ?? "";
             var director = info.GetProperty("director").GetString() ?? "";
 
+<<<<<<< HEAD
             var backdrop_path = string.Empty;
             try
             {
@@ -413,10 +542,16 @@ namespace XtreamIPTV.Services
             {
                 if (DateTime.TryParse(rd.GetString(), out var dt))
                     movie.ReleaseDate = dt;
+=======
+            if (info.TryGetProperty("releasedate", out var rd) && rd.ValueKind == JsonValueKind.String)
+            {
+                //if (DateTime.TryParse(rd.GetString(), out var dt))
+>>>>>>> 363c62477059520f3013ca59559e4972dc8805c4
                 //    genre = (dt.Year / 10) * 10;
                 genre = $"{rd.GetString()} * {genre}";
             }
 
+<<<<<<< HEAD
             if (!string.IsNullOrEmpty(backdrop_path))
                 movie.Backdrop = backdrop_path;
 
@@ -429,6 +564,14 @@ namespace XtreamIPTV.Services
             if (!string.IsNullOrEmpty(director))
                 movie.Directors = director.Split(',').Select(d => new LinkItem { Text = d.Trim(), Url = $"Director:{d.Trim()}" }).ToList();
 
+=======
+            movie.Backdrop = backdrop;
+            movie.ReleaseInfo = genre;
+            if (!string.IsNullOrEmpty(cast))
+                movie.CastInfo = $"Cast: {cast}";
+            if (!string.IsNullOrEmpty(director))
+                movie.DirectorInfo = $"Director: {director}";
+>>>>>>> 363c62477059520f3013ca59559e4972dc8805c4
             return movie;
         }
 
@@ -451,7 +594,10 @@ namespace XtreamIPTV.Services
                         var lastWrite = File.GetLastWriteTime(filename);
                         if (DateTime.Now - lastWrite < TimeSpan.FromHours(8))
                         {
+<<<<<<< HEAD
                             Debug.WriteLine($"Using cached data for action {action}");
+=======
+>>>>>>> 363c62477059520f3013ca59559e4972dc8805c4
                             return await File.ReadAllTextAsync(filename, cancellationToken);
                         }
                     }
@@ -466,12 +612,17 @@ namespace XtreamIPTV.Services
                 }
                 return retValue;
             }
+<<<<<<< HEAD
             catch
+=======
+            catch (Exception ex)
+>>>>>>> 363c62477059520f3013ca59559e4972dc8805c4
             {
                 // Handle exceptions (e.g., log them)
                 return string.Empty;
             }
         }
+<<<<<<< HEAD
 
         public async Task<IEnumerable<Movie>> GetSimiliarMovies(Movie? movie, System.Collections.ObjectModel.ObservableCollection<Movie> allMovies)
         {
@@ -836,4 +987,7 @@ namespace XtreamIPTV.Services
 
     }
 
+=======
+    }
+>>>>>>> 363c62477059520f3013ca59559e4972dc8805c4
 }

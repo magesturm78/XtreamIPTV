@@ -1,4 +1,5 @@
 ﻿using System;
+<<<<<<< HEAD
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Runtime.Intrinsics.Arm;
@@ -6,11 +7,20 @@ using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Documents;
 using System.Windows.Input;
+=======
+using System.Diagnostics;
+using System.Windows;
+using System.Windows.Controls;
+using System.Windows.Documents;
+>>>>>>> 363c62477059520f3013ca59559e4972dc8805c4
 using System.Windows.Media;
 using System.Windows.Media.Imaging;
 using XtreamIPTV.Models;
 using XtreamIPTV.ViewModels;
+<<<<<<< HEAD
 using static Microsoft.EntityFrameworkCore.DbLoggerCategory;
+=======
+>>>>>>> 363c62477059520f3013ca59559e4972dc8805c4
 
 namespace XtreamIPTV.Views
 {
@@ -22,6 +32,7 @@ namespace XtreamIPTV.Views
         {
             InitializeComponent();
 
+<<<<<<< HEAD
             List<string> decades = ["ALL"];
             for (int dec = 2020; dec >= 1900; dec -=10 )
             {
@@ -72,10 +83,13 @@ namespace XtreamIPTV.Views
             });
 
 
+=======
+>>>>>>> 363c62477059520f3013ca59559e4972dc8805c4
             Loaded += async (_, _) =>
             {
                 if (DataContext is MoviesViewModel vm)
                 {
+<<<<<<< HEAD
                     var window = System.Windows.Window.GetWindow(this);
                     if (window?.DataContext is MainViewModel mvm)
                     {
@@ -133,11 +147,19 @@ namespace XtreamIPTV.Views
                         else
                             cbtn.FontWeight = FontWeights.Normal;
                     }
+=======
+                    await vm.LoadMovieCategoriesAsync();
+                    await vm.LoadMoviesAsync();
+>>>>>>> 363c62477059520f3013ca59559e4972dc8805c4
                 }
             };
         }
 
+<<<<<<< HEAD
         private async void Button_Click(object sender, System.Windows.RoutedEventArgs e)
+=======
+        private void Button_Click(object sender, System.Windows.RoutedEventArgs e)
+>>>>>>> 363c62477059520f3013ca59559e4972dc8805c4
         {
             if (DataContext is not MoviesViewModel movievm) return;
 
@@ -147,6 +169,7 @@ namespace XtreamIPTV.Views
             var window = System.Windows.Window.GetWindow(this);
             if (window?.DataContext is MainViewModel mvm)
             {
+<<<<<<< HEAD
                 Cursor = Cursors.Wait;
 
                 try
@@ -162,6 +185,9 @@ namespace XtreamIPTV.Views
                     // Revert cursor to default after the operation is complete
                     Cursor = Cursors.Arrow;
                 }
+=======
+                mvm.PlayMovie(movievm.SelectedMovie);
+>>>>>>> 363c62477059520f3013ca59559e4972dc8805c4
             }
 
         }
@@ -185,6 +211,7 @@ namespace XtreamIPTV.Views
             {
                 vm.GetSelectedMovieData();
                 if (vm.SelectedMovie != null)
+<<<<<<< HEAD
                 {
                     if (vm.MovePlayTime > 0)
                     {
@@ -199,6 +226,12 @@ namespace XtreamIPTV.Views
                     }
                     FavoriteButton.Content = vm.IsFavorite(vm.SelectedMovie) ? "*Favorite" : "Favorite";
                 }
+=======
+                    FavoriteButton.Content = vm.IsFavorite(vm.SelectedMovie) ? "*Favorite" : "Favorite";
+                var window = Window.GetWindow(this);
+                if (window != null)
+                    window.Title = $"XtreamIPTV Player: Movies {vm.FilteredMovies.Count}";
+>>>>>>> 363c62477059520f3013ca59559e4972dc8805c4
             }
         }
 
@@ -210,11 +243,21 @@ namespace XtreamIPTV.Views
                 {
                     if (DataContext is MoviesViewModel vm)
                     {
+<<<<<<< HEAD
                         if (vm.FilteredMovies.Count >= vm.FilteredMoviesCount) return;
                         if ((DateTime.Now - scrollTime).TotalMilliseconds < 50) return; // prevent multiple triggers in short time
                         Debug.WriteLine("Loading more data!");
 
                         vm.ScrollMovies();
+=======
+                        if (vm.AllMovies.Count < vm.MovieCount) return;
+                        if (scrollTime != null && (DateTime.Now - scrollTime).TotalMilliseconds < 50) return; // prevent multiple triggers in short time
+                        Debug.WriteLine("Loading more data!");
+
+                        vm.ScrollMovies();
+                        var window = Window.GetWindow(this);
+                        window.Title = $"XtreamIPTV Player: Movies {vm.FilteredMovies.Count}";
+>>>>>>> 363c62477059520f3013ca59559e4972dc8805c4
                     }
                     scrollTime = DateTime.Now;
                 }
@@ -225,6 +268,7 @@ namespace XtreamIPTV.Views
         {
             var scrollViewer = GetScrollViewer(MoviesListBox);
             scrollViewer?.ScrollToTop();
+<<<<<<< HEAD
             if (DataContext is not MoviesViewModel vm) return;
             RemoveHistButton.Visibility = vm?.SelectedCategory?.Id == -3 ? Visibility.Visible : Visibility.Collapsed;
             BackButton.Visibility = Visibility.Hidden;
@@ -232,11 +276,17 @@ namespace XtreamIPTV.Views
         }
 
         private async void PlayButton2_Click(object sender, RoutedEventArgs e)
+=======
+        }
+
+        private void PlayButton2_Click(object sender, RoutedEventArgs e)
+>>>>>>> 363c62477059520f3013ca59559e4972dc8805c4
         {
             if (DataContext is not MoviesViewModel movievm) return;
 
             if (movievm.SelectedMovie == null) return;
 
+<<<<<<< HEAD
             // Bubble up to MainViewModel via DataContext of Window
             var window = System.Windows.Window.GetWindow(this);
             if (window?.DataContext is MainViewModel mvm)
@@ -257,32 +307,50 @@ namespace XtreamIPTV.Views
                     Cursor = Cursors.Arrow;
                 }
             }
+=======
+            string exe = "C:\\Program Files\\MPC-HC\\mpc-hc64.exe";
+            string arguments = $"\"{movievm.SelectedMovie.StreamUrl}\"";
+            Process.Start(exe, arguments);
+>>>>>>> 363c62477059520f3013ca59559e4972dc8805c4
         }
 
         private void DefaultSort_Click(object sender, RoutedEventArgs e)
         {
+<<<<<<< HEAD
             UpdateSort(Sort.Default);
+=======
+            UpdateSort(Sort.None);
+>>>>>>> 363c62477059520f3013ca59559e4972dc8805c4
         }
 
         private void DateSort_Click(object sender, RoutedEventArgs e)
         {
+<<<<<<< HEAD
             UpdateSort(Sort.Date);
+=======
+            UpdateSort(Sort.ReleaseDate);
+>>>>>>> 363c62477059520f3013ca59559e4972dc8805c4
         }
 
         private void PopularitySort_Click(object sender, RoutedEventArgs e)
         {
+<<<<<<< HEAD
             UpdateSort(Sort.Popularity);
         }
 
         private void NameSort_Click(object sender, RoutedEventArgs e)
         {
             UpdateSort(Sort.Name);
+=======
+            UpdateSort(Sort.Rating);
+>>>>>>> 363c62477059520f3013ca59559e4972dc8805c4
         }
 
         private void UpdateSort(Sort order)
         {
             var scrollViewer = GetScrollViewer(MoviesListBox);
             scrollViewer?.ScrollToTop();
+<<<<<<< HEAD
             SortTogglePopupButton.IsChecked = false;
             if (DataContext is not MoviesViewModel movievm) return;
             movievm.Sort = order;
@@ -295,6 +363,12 @@ namespace XtreamIPTV.Views
                     cbtn.FontWeight = FontWeights.Normal;
             }
             BackButton.Visibility = Visibility.Hidden;
+=======
+            TogglePopupButton.IsChecked = false;
+            if (DataContext is not MoviesViewModel movievm) return;
+            movievm.Sort = order;
+
+>>>>>>> 363c62477059520f3013ca59559e4972dc8805c4
         }
 
         private void FavoriteButton_Click(object sender, RoutedEventArgs e)
@@ -304,6 +378,7 @@ namespace XtreamIPTV.Views
             if (vm.SelectedMovie != null)
                 FavoriteButton.Content = vm.IsFavorite(vm.SelectedMovie) ? "*Favorite" : "Favorite";
         }
+<<<<<<< HEAD
 
         private void SimiliarButton_Click(object sender, RoutedEventArgs e)
         {
@@ -395,5 +470,7 @@ namespace XtreamIPTV.Views
                 }
             }
         }
+=======
+>>>>>>> 363c62477059520f3013ca59559e4972dc8805c4
     }
 }

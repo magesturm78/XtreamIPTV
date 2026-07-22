@@ -1,8 +1,14 @@
+<<<<<<< HEAD
 ﻿using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.ComponentModel;
 using System.IO;
+=======
+﻿using System.Collections.Generic;
+using System.Collections.ObjectModel;
+using System.ComponentModel;
+>>>>>>> 363c62477059520f3013ca59559e4972dc8805c4
 using System.Linq;
 using System.Threading.Tasks;
 using XtreamIPTV.Models;
@@ -11,12 +17,15 @@ using static XtreamIPTV.ViewModels.MoviesViewModel;
 
 namespace XtreamIPTV.ViewModels
 {
+<<<<<<< HEAD
     public struct SeriesHistoryItem
     {
         public Series SelectedSeries;
         public ObservableCollection<Series> FilteredSeries;
     }
 
+=======
+>>>>>>> 363c62477059520f3013ca59559e4972dc8805c4
     public class SeriesViewModel : INotifyPropertyChanged
     {
         const int ROW_SIZE = 10;
@@ -24,13 +33,17 @@ namespace XtreamIPTV.ViewModels
 
         private readonly IIPTVService _xtream;
         private readonly FavoritesService _favorites;
+<<<<<<< HEAD
         private readonly SeriesEpisodeService _seriesEpisode;
         private readonly Stack<SeriesHistoryItem> _historyStack = new Stack<SeriesHistoryItem>();
+=======
+>>>>>>> 363c62477059520f3013ca59559e4972dc8805c4
 
         public ObservableCollection<Series> AllSeries { get; set; } = new();
 
         public ObservableCollection<Series> FilteredSeries { get; set; } = new();
 
+<<<<<<< HEAD
         public ObservableCollection<Series> SearchedSeries { get; set; } = new();
 
         public ObservableCollection<Category> Categories { get; set; } = new();
@@ -48,6 +61,10 @@ namespace XtreamIPTV.ViewModels
             }
         }
 
+=======
+        public ObservableCollection<Category> Categories { get; set; } = new();
+
+>>>>>>> 363c62477059520f3013ca59559e4972dc8805c4
         public Category? SelectedCategory
         {
             get => _selectedCategory;
@@ -86,6 +103,7 @@ namespace XtreamIPTV.ViewModels
             }
         }
 
+<<<<<<< HEAD
         public Episode? SelectedEpisode
         {
             get => SelectedSeason?.SelectedEpisode;
@@ -93,11 +111,24 @@ namespace XtreamIPTV.ViewModels
             {
                 SelectedSeason = SelectedSeries?.Seasons.FirstOrDefault(s => s.Episodes.Any(e => e.EpisodeId == value?.EpisodeId));
                 SelectedSeason?.SelectedEpisode = value;
+=======
+        private Episode? _selectedEpisode;
+        public Episode? SelectedEpisode
+        {
+            get => _selectedEpisode;
+            set
+            {
+                _selectedEpisode = value;
+>>>>>>> 363c62477059520f3013ca59559e4972dc8805c4
                 PropertyChanged?.Invoke(this, new(nameof(SelectedEpisode)));
             }
         }
 
+<<<<<<< HEAD
         private Sort _sort = Sort.Default;
+=======
+        private Sort _sort = Sort.None;
+>>>>>>> 363c62477059520f3013ca59559e4972dc8805c4
         public Sort Sort
         {
             get
@@ -113,6 +144,7 @@ namespace XtreamIPTV.ViewModels
             }
         }
 
+<<<<<<< HEAD
         private int _decadeFilter = 0;
         public int DecadeFilter
         {
@@ -219,14 +251,56 @@ namespace XtreamIPTV.ViewModels
             }
             FilteredSeriesCount = filter.Count();
             return filter;
+=======
+        public SeriesViewModel(IIPTVService xtream, FavoritesService favorites)
+        {
+            _xtream = xtream;
+            _favorites = favorites;
+        }
+
+        private List<Series> GetFilteredSeries()
+        {
+            List<Series> filter = [];
+            switch (_selectedCategory?.Id)
+            {
+                case -1: //All
+                    filter = [.. AllSeries];
+                    break;
+                case -2://Favorite
+                    filter = [.. AllSeries.Where(m => _favorites.IsFavorite($"series-{m.Id}")).ToList()];
+                    break;
+                default:
+                    filter = _selectedCategory == null ? [.. AllSeries] : AllSeries.Where(m => m.CategoryId == _selectedCategory.Id).ToList();
+                    break;
+            }
+
+            switch (_sort)
+            {
+                case Sort.ReleaseDate:
+                    filter = [.. filter.OrderByDescending(m => m.LastModified)];
+                    break;
+                case Sort.Rating:
+                    filter = [.. filter.OrderByDescending(m => m.Rating)];
+                    break;
+                default:
+                    break;
+            }
+            return filter;
+
+>>>>>>> 363c62477059520f3013ca59559e4972dc8805c4
         }
 
         public async Task LoadSeriesAsync()
         {
+<<<<<<< HEAD
             if (AllSeries.Count > 0) return;
             AllSeries.Clear();
             var list = await _xtream.GetSeriesAsync();
             AgeRatings = new ObservableCollection<string>(["ALL",  "TV-MA", "M", "MA-15+", "18", "18+", "R18", "19", "X", "VM18", "K18", "C", "D", "A", "R21", "NR", "Adult"]);
+=======
+            AllSeries.Clear();
+            var list = await _xtream.GetSeriesAsync();
+>>>>>>> 363c62477059520f3013ca59559e4972dc8805c4
             foreach (var s in list)
                 AllSeries.Add(s);
             ApplyFilters();
@@ -249,15 +323,24 @@ namespace XtreamIPTV.ViewModels
             var list = await _xtream.GetSeriesCategoriesAsync();
             Categories.Add(new Category { Id = -1, Name = "All" });
             Categories.Add(new Category { Id = -2, Name = "Favorites" });
+<<<<<<< HEAD
             Categories.Add(new Category { Id = -3, Name = "History" });
             foreach (var mc in list)
                 Categories.Add(mc);
             SelectedCategory = Categories.FirstOrDefault(c => c.Id == -2);//Default to Favorites
+=======
+            foreach (var mc in list)
+                Categories.Add(mc);
+            SelectedCategory = Categories.FirstOrDefault();
+>>>>>>> 363c62477059520f3013ca59559e4972dc8805c4
         }
 
         public void ApplyFilters()
         {
+<<<<<<< HEAD
             _historyStack.Clear();
+=======
+>>>>>>> 363c62477059520f3013ca59559e4972dc8805c4
             FilteredSeries.Clear();
             foreach (var m in GetFilteredSeries().Take(ROW_SIZE * 5))
             {
@@ -269,6 +352,7 @@ namespace XtreamIPTV.ViewModels
         private async Task LoadSeasonsAsync()
         {
             if (SelectedSeries == null) return;
+<<<<<<< HEAD
             var series = AllSeries.FirstOrDefault(s => s.Id == SelectedSeries.Id);
             if (series == null) return;
             if (series.Seasons.Count == 0)
@@ -299,6 +383,17 @@ namespace XtreamIPTV.ViewModels
             PropertyChanged?.Invoke(this, new(nameof(SelectedSeries)));
             PropertyChanged?.Invoke(this, new(nameof(SelectedSeason)));
             PropertyChanged?.Invoke(this, new(nameof(SelectedEpisode)));
+=======
+
+            if (SelectedSeries.Seasons.Count > 0) return;
+
+            SelectedSeries.Seasons.Clear();
+            var seasons = await _xtream.GetSeasonsAsync(SelectedSeries);
+            foreach (var s in seasons)
+                SelectedSeries.Seasons.Add(s);
+
+            PropertyChanged?.Invoke(this, new(nameof(SelectedSeries)));
+>>>>>>> 363c62477059520f3013ca59559e4972dc8805c4
         }
 
         public void ToggleFavorite()
@@ -309,6 +404,7 @@ namespace XtreamIPTV.ViewModels
 
         public bool IsFavorite(Series m) =>
                 _favorites.IsFavorite($"series-{m.Id}");
+<<<<<<< HEAD
 
         internal string GetSeriesTitle(int seriesId)
         {
@@ -367,5 +463,7 @@ namespace XtreamIPTV.ViewModels
             SelectedSeries = item.SelectedSeries;
             return (_historyStack.Count != 0);
         }
+=======
+>>>>>>> 363c62477059520f3013ca59559e4972dc8805c4
     }
 }

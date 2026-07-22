@@ -3,9 +3,13 @@ using System.Numerics;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
+<<<<<<< HEAD
 using System.Windows.Media;
 using System.Windows.Threading;
 using XtreamIPTV.Models;
+=======
+using System.Windows.Threading;
+>>>>>>> 363c62477059520f3013ca59559e4972dc8805c4
 using XtreamIPTV.ViewModels;
 
 namespace XtreamIPTV.Views
@@ -13,13 +17,17 @@ namespace XtreamIPTV.Views
     public partial class PlayerView : UserControl
     {
         private readonly DispatcherTimer _timer = new();
+<<<<<<< HEAD
         private readonly DispatcherTimer _hideTimer = new();
+=======
+>>>>>>> 363c62477059520f3013ca59559e4972dc8805c4
         private PlayerViewModel? VM => DataContext as PlayerViewModel;
 
         public PlayerView()
         {
             InitializeComponent();
 
+<<<<<<< HEAD
             VideoPlayer.Volume = 1.0;
 
             _timer.Interval = TimeSpan.FromSeconds(1);
@@ -48,6 +56,17 @@ namespace XtreamIPTV.Views
                     return;
                 }
                 VM?.ErrorMessage = "Media Failed: " + args.ErrorException.Message;
+=======
+            _timer.Interval = TimeSpan.FromSeconds(5);
+            _timer.Tick += (_, _) =>
+            {
+                VM?.SavePosition(VideoPlayer.Position.TotalSeconds);
+            };
+
+            VideoPlayer.MediaFailed += (o, args) => {
+                if (VM != null)
+                    VM.ErrorMessage = "Media Failed: " + args.ErrorException.Message;
+>>>>>>> 363c62477059520f3013ca59559e4972dc8805c4
             };
 
             VideoPlayer.MediaOpened += (o, args) =>
@@ -55,6 +74,7 @@ namespace XtreamIPTV.Views
                 VideoControls.Visibility = Visibility.Visible;
                 if (VM != null)
                     VideoPlayer.Position = TimeSpan.FromSeconds(VM.StartPositionSeconds);
+<<<<<<< HEAD
                 if (VideoPlayer.NaturalDuration.HasTimeSpan)
                 {
                     TimeSpan duration = VideoPlayer.NaturalDuration.TimeSpan;
@@ -81,10 +101,13 @@ namespace XtreamIPTV.Views
                 ResolutionText.Text = $"{VideoPlayer.NaturalVideoWidth}x{VideoPlayer.NaturalVideoHeight}";
 
                 _timer.Start();
+=======
+>>>>>>> 363c62477059520f3013ca59559e4972dc8805c4
             };
 
             Loaded += (_, _) =>
             {
+<<<<<<< HEAD
                 var window = System.Windows.Window.GetWindow(this);
                 if (window?.DataContext is MainViewModel mvm)
                 {
@@ -102,17 +125,26 @@ namespace XtreamIPTV.Views
                     }
                 }
                 Play();
+=======
+                VideoPlayer.Play();
+                _timer.Start();
+>>>>>>> 363c62477059520f3013ca59559e4972dc8805c4
             };
 
             Unloaded += (_, _) =>
             {
+<<<<<<< HEAD
                 Cursor = Cursors.Arrow;
                 _timer.Stop();
                 Pause();
+=======
+                _timer.Stop();
+>>>>>>> 363c62477059520f3013ca59559e4972dc8805c4
                 VM?.SavePosition(VideoPlayer.Position.TotalSeconds);
             };
         }
 
+<<<<<<< HEAD
         private bool UpdatePositionDisplay()
         {
             VM?.SavePosition(VideoPlayer.Position.TotalSeconds);
@@ -130,11 +162,14 @@ namespace XtreamIPTV.Views
             return true;
         }
 
+=======
+>>>>>>> 363c62477059520f3013ca59559e4972dc8805c4
         private void VideoPlayer_MediaEnded(object sender, System.Windows.RoutedEventArgs e)
         {
             VM?.SavePosition(0);
         }
 
+<<<<<<< HEAD
         public void PlayButton_Click(object sender, RoutedEventArgs e)
         {
             if (PlayPauseIcon.Data == (Geometry)FindResource("PlayIconData"))
@@ -145,6 +180,21 @@ namespace XtreamIPTV.Views
             {
                 Pause();
             }
+=======
+        private void PlayButton_Click(object sender, RoutedEventArgs e)
+        {
+            VideoPlayer.Play();
+        }
+
+        private void PauseButton_Click(object sender, RoutedEventArgs e)
+        {
+            VideoPlayer.Pause();
+        }
+
+        private void StopButton_Click(object sender, RoutedEventArgs e)
+        {
+            VideoPlayer.Stop();
+>>>>>>> 363c62477059520f3013ca59559e4972dc8805c4
         }
 
         private bool _isFullscreen = false;
@@ -153,6 +203,7 @@ namespace XtreamIPTV.Views
         {
             if (e.ClickCount == 1)
             {
+<<<<<<< HEAD
                 PlayButton_Click(null, null);
             }
         }
@@ -288,5 +339,27 @@ namespace XtreamIPTV.Views
             window.Width = VideoPlayer.NaturalVideoWidth;
             window.Height = VideoPlayer.NaturalVideoHeight + topBorderHeight;
         }
+=======
+                var window = Window.GetWindow(this);
+
+                if (window.WindowStyle != WindowStyle.None)
+                {
+                    window.WindowStyle = WindowStyle.None;
+                    window.WindowState = WindowState.Maximized;
+                    window.ResizeMode = ResizeMode.NoResize;
+                    _isFullscreen = true;
+                }
+                else
+                {
+                    window.WindowStyle = WindowStyle.SingleBorderWindow;
+                    window.WindowState = WindowState.Normal;
+                    window.ResizeMode = ResizeMode.CanResize;
+                    _isFullscreen = false;
+                }
+                window.Topmost = _isFullscreen;
+            }
+        }
+
+>>>>>>> 363c62477059520f3013ca59559e4972dc8805c4
     }
 }

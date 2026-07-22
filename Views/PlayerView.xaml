@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 ﻿<UserControl
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml" 
@@ -107,5 +108,24 @@ M19.3247 6.26245C19.7321 5.8895 20.3646 5.91738 20.7376 6.32472C22.1408 7.8573 2
                 </Button>
             </StackPanel>
         </Grid>
+=======
+﻿<UserControl x:Class="XtreamIPTV.Views.PlayerView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+    <Grid Background="Black">
+        <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center">
+            <MediaElement x:Name="VideoPlayer" LoadedBehavior="Manual" UnloadedBehavior="Stop"
+                      Source="{Binding CurrentStreamUrl}"
+                      Stretch="Uniform" MouseLeftButtonUp="Media_MouseLeftButtonUp"
+                      MediaEnded="VideoPlayer_MediaEnded"/>
+            <StackPanel x:Name="VideoControls" Orientation="Horizontal" HorizontalAlignment="Center" VerticalAlignment="Bottom" Height="30" Visibility="Hidden">
+                <Button Content="Play" Click="PlayButton_Click" Margin="0,0,10,0"  Width="100"/>
+                <Button Content="Pause" Click="PauseButton_Click" Margin="0,0,10,0" Width="100"/>
+                <Button Content="Stop" Click="StopButton_Click" Margin="0,0,10,0" Width="100"/>
+                <!-- Add a Slider for progress/volume as needed -->
+            </StackPanel>
+            <TextBlock Text="{Binding ErrorMessage}" Foreground="White" Margin="0,0,0,0" HorizontalAlignment="Center" FontSize="50"/>
+        </StackPanel>
+>>>>>>> 363c62477059520f3013ca59559e4972dc8805c4
     </Grid>
 </UserControl>

@@ -1,5 +1,6 @@
 ﻿using System.Collections.Generic;
 using System.Collections.ObjectModel;
+<<<<<<< HEAD
 using System.ComponentModel;
 
 namespace XtreamIPTV.Models
@@ -24,6 +25,16 @@ namespace XtreamIPTV.Models
             }
         }
 
+=======
+
+namespace XtreamIPTV.Models
+{
+    public class Season
+    {
+        public int SeasonNumber { get; set; }
+        public ObservableCollection<Episode> Episodes { get; set; } = new();
+
+>>>>>>> 363c62477059520f3013ca59559e4972dc8805c4
         public string SeasonId => $"Season {SeasonNumber}";
     }
 }
