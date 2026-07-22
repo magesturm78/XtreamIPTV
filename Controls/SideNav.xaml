@@ -34,6 +34,12 @@
                 Margin="0,0,10,0"                
                 Command="{Binding DataContext.ShowPlayerCommand,
                                   RelativeSource={RelativeSource AncestorType=Window}}"/>-->
+=======
+        <Button Content="Player" Width="50"
+                Margin="0,0,10,0"                
+                Command="{Binding DataContext.ShowPlayerCommand,
+                                  RelativeSource={RelativeSource AncestorType=Window}}"/>
+>>>>>>> 363c62477059520f3013ca59559e4972dc8805c4
 
         <StackPanel.LayoutTransform>
             <RotateTransform Angle="90" />
